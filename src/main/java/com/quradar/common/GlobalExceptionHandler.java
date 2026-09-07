@@ -3,6 +3,7 @@ package com.quradar.common;
 import com.quradar.device.DeviceNotFoundException;
 import com.quradar.device.InactiveDeviceException;
 import com.quradar.driver.DriverNotFoundException;
+import com.quradar.fine.FineNotFoundException;
 import com.quradar.ingestion.DuplicateEventException;
 import com.quradar.rules.RuleNotFoundException;
 import com.quradar.vehicle.VehicleNotFoundException;
@@ -20,7 +21,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler({RuleNotFoundException.class, DeviceNotFoundException.class,
-            DriverNotFoundException.class, VehicleNotFoundException.class})
+            DriverNotFoundException.class, VehicleNotFoundException.class,
+            FineNotFoundException.class})
     public ResponseEntity<Map<String, String>> handleNotFound(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
     }
