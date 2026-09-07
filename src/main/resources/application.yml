@@ -13,10 +13,18 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 quradar:
   demo:
     enabled: true
+  idempotency-ttl-hours: 24
+  rate-limit:
+    events-per-minute: ${RATELIMIT_EVENTS_PER_MIN:60}
+    auth-per-minute: ${RATELIMIT_AUTH_PER_MIN:10}
   jwt:
     secret: ${JWT_SECRET:dev-secret-key-that-is-at-least-32-bytes-long!}
     access-minutes: 15

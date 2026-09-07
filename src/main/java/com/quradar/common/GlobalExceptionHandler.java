@@ -3,6 +3,7 @@ package com.quradar.common;
 import com.quradar.device.DeviceNotFoundException;
 import com.quradar.device.InactiveDeviceException;
 import com.quradar.driver.DriverNotFoundException;
+import com.quradar.ingestion.DuplicateEventException;
 import com.quradar.rules.RuleNotFoundException;
 import com.quradar.vehicle.VehicleNotFoundException;
 import java.util.Map;
@@ -30,8 +31,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<Map<String, String>> handleConflict(DataIntegrityViolationException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
+    public ResponseEntity<Map<String, String>> handleConflict(DataIntegrityViolationException ex) {        return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("error", "Conflict: duplicate data (a replayed eventId returns 409)"));
     }
 
@@ -53,5 +53,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleBadRequest(IllegalArgumentException ex) {
         return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateEventException.class)
+    public ResponseEntity<Map<String, String>> handleDuplicate(DuplicateEventException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<Map<String, String>> handleRateLimited(RateLimitExceededException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(Map.of("error", ex.getMessage()));
     }
 }

@@ -10,6 +10,8 @@ import com.quradar.fine.Fine;
 import com.quradar.fine.FineCalculationService;
 import com.quradar.fine.FineEntity;
 import com.quradar.fine.FineRepository;
+import com.quradar.ingestion.DuplicateEventException;
+import com.quradar.ingestion.IdempotencyCache;
 import com.quradar.ingestion.Observation;
 import com.quradar.ingestion.ObservationEntity;
 import com.quradar.ingestion.ObservationRepository;
@@ -19,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Rule engine orchestrator. One transaction per observation: validate device,
@@ -35,6 +39,7 @@ public class QuRadar {
 
     private final RuleConfigService ruleConfigs;
     private final FineCalculationService fineCalculation;
+    private final IdempotencyCache idempotencyCache;
     private final DeviceRepository devices;
     private final VehicleRepository vehicles;
     private final DriverRepository drivers;
@@ -42,11 +47,12 @@ public class QuRadar {
     private final FineRepository fines;
 
     public QuRadar(RuleConfigService ruleConfigs, FineCalculationService fineCalculation,
-                   DeviceRepository devices, VehicleRepository vehicles,
-                   DriverRepository drivers, ObservationRepository observations,
-                   FineRepository fines) {
+                   IdempotencyCache idempotencyCache, DeviceRepository devices,
+                   VehicleRepository vehicles, DriverRepository drivers,
+                   ObservationRepository observations, FineRepository fines) {
         this.ruleConfigs = ruleConfigs;
         this.fineCalculation = fineCalculation;
+        this.idempotencyCache = idempotencyCache;
         this.devices = devices;
         this.vehicles = vehicles;
         this.drivers = drivers;
@@ -56,6 +62,9 @@ public class QuRadar {
 
     @Transactional
     public Fine processObservation(Observation observation) {
+        if (observation.getEventId() != null && idempotencyCache.seen(observation.getEventId())) {
+            throw new DuplicateEventException(observation.getEventId());
+        }
         DeviceEntity device = null;
         if (observation.getDeviceCode() != null) {
             device = devices.findByDeviceCode(observation.getDeviceCode())
@@ -102,6 +111,16 @@ public class QuRadar {
                     violation.getFee(), violation.getPoints());
         }
         fines.save(fineEntity);
+
+        if (observation.getEventId() != null) {
+            String eventId = observation.getEventId();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    idempotencyCache.mark(eventId);
+                }
+            });
+        }
 
         vehicles.findByPlate(observation.getPlateNumber()).ifPresent(vehicle -> {
             Driver owner = vehicle.getOwner();
