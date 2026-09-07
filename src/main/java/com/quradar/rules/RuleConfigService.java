@@ -48,6 +48,11 @@ public class RuleConfigService {
     }
 
     @Transactional(readOnly = true)
+    public int pointsFor(String code) {
+        return repository.findById(code).map(RuleConfig::getPenaltyPoints).orElse(0);
+    }
+
+    @Transactional(readOnly = true)
     public List<ViolationRule> buildEnabledRules() {
         List<ViolationRule> rules = new ArrayList<>();
         for (RuleConfig config : repository.findAll()) {

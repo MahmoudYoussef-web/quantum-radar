@@ -12,6 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +38,9 @@ public class FineEntity {
     @OneToMany(mappedBy = "fine", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ViolationEntity> violations = new ArrayList<>();
 
+    @Version
+    private Long version;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -50,8 +54,8 @@ public class FineEntity {
         this.createdAt = Instant.now();
     }
 
-    public void addViolation(String ruleName, String description, int fee) {
-        violations.add(new ViolationEntity(this, ruleName, description, fee));
+    public void addViolation(String ruleName, String description, int fee, int points) {
+        violations.add(new ViolationEntity(this, ruleName, description, fee, points));
     }
 
     public Long getId() {
@@ -72,6 +76,10 @@ public class FineEntity {
 
     public List<ViolationEntity> getViolations() {
         return violations;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public Instant getCreatedAt() {

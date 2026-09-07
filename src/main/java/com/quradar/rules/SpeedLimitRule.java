@@ -18,6 +18,14 @@ public class SpeedLimitRule implements ViolationRule {
         this.fee = fee;
     }
 
+    public CarType getCarType() {
+        return carType;
+    }
+
+    public int getMaxSpeed() {
+        return maxSpeed;
+    }
+
     @Override
     public String getRuleCode() {
         return code;
