@@ -1,12 +1,18 @@
 export function Loading({ what }: { what: string }) {
-  return <p className="muted">Loading {what}…</p>
+  return (
+    <p className="muted" role="status">
+      Loading {what}…
+    </p>
+  )
 }
 
 export function ErrorBox({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="error">
-      <p>Failed to load: {message}</p>
-      <button onClick={onRetry}>Retry</button>
+    <div className="error-box" role="alert">
+      <p style={{ margin: '0 0 0.5rem' }}>Failed to load: {message}</p>
+      <button className="btn-ghost btn btn-sm" onClick={onRetry}>
+        Retry
+      </button>
     </div>
   )
 }
@@ -26,16 +32,20 @@ export function Pager({
 }) {
   if (totalPages <= 1) return null
   return (
-    <div className="pager">
-      <button disabled={page === 0} onClick={() => onPage(page - 1)}>
+    <nav className="pager" aria-label="Pagination">
+      <button className="btn-ghost btn btn-sm" disabled={page === 0} onClick={() => onPage(page - 1)}>
         Prev
       </button>
-      <span>
+      <span aria-live="polite">
         Page {page + 1} of {totalPages}
       </span>
-      <button disabled={page + 1 >= totalPages} onClick={() => onPage(page + 1)}>
+      <button
+        className="btn-ghost btn btn-sm"
+        disabled={page + 1 >= totalPages}
+        onClick={() => onPage(page + 1)}
+      >
         Next
       </button>
-    </div>
+    </nav>
   )
 }

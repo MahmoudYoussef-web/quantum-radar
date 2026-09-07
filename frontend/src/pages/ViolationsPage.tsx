@@ -30,41 +30,71 @@ export function ViolationsPage() {
 
   return (
     <div>
-      <h2>Violations</h2>
-      <form className="filters" onSubmit={apply}>
-        <input placeholder="Plate (e.g. ABC1234)" value={plate} onChange={(e) => setPlate(e.target.value)} />
-        <input placeholder="Rule (e.g. SEATBELT)" value={rule} onChange={(e) => setRule(e.target.value)} />
-        <button type="submit">Filter</button>
+      <div className="page-head">
+        <h1>Violations</h1>
+        <p>
+          Every recorded rule hit, newest first. Filter by plate or rule code —{' '}
+          {query.data ? `${query.data.totalElements} total` : 'loading total'}.
+        </p>
+      </div>
+      <form className="filters" onSubmit={apply} aria-label="Filter violations">
+        <div className="field">
+          <label htmlFor="f-plate">Plate</label>
+          <input
+            id="f-plate"
+            placeholder="ABC1234"
+            value={plate}
+            onChange={(e) => setPlate(e.target.value)}
+            autoComplete="off"
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="f-rule">Rule</label>
+          <input
+            id="f-rule"
+            placeholder="SEATBELT"
+            value={rule}
+            onChange={(e) => setRule(e.target.value)}
+            autoComplete="off"
+          />
+        </div>
+        <button className="btn" type="submit">
+          Filter
+        </button>
       </form>
       {query.isPending && <Loading what="violations" />}
       {query.isError && <ErrorBox message={(query.error as Error).message} onRetry={() => query.refetch()} />}
-      {query.data && query.data.content.length === 0 && <Empty what="violations" />}
+      {query.data && query.data.content.length === 0 && <Empty what="violations match these filters" />}
       {query.data && query.data.content.length > 0 && (
         <>
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Plate</th>
-                <th>Rule</th>
-                <th>Description</th>
-                <th>Fee</th>
-                <th>Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {query.data.content.map((v) => (
-                <tr key={v.id}>
-                  <td>{v.id}</td>
-                  <td>{v.plateNumber}</td>
-                  <td>{v.ruleName}</td>
-                  <td>{v.description}</td>
-                  <td>{v.fee}</td>
-                  <td>{v.points}</td>
+          <div className="table-scroll">
+            <table className="grid">
+              <thead>
+                <tr>
+                  <th className="num">ID</th>
+                  <th>Plate</th>
+                  <th>Rule</th>
+                  <th>Description</th>
+                  <th className="num">Fee (EGP)</th>
+                  <th className="num">Points</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {query.data.content.map((v) => (
+                  <tr key={v.id}>
+                    <td className="num">{v.id}</td>
+                    <td className="mono">{v.plateNumber}</td>
+                    <td>
+                      <span className="pill pill-warn">{v.ruleName}</span>
+                    </td>
+                    <td>{v.description}</td>
+                    <td className="num">{v.fee}</td>
+                    <td className="num">{v.points}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <Pager page={query.data.number} totalPages={query.data.totalPages} onPage={setPage} />
         </>
       )}

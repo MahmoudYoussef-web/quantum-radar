@@ -36,46 +36,67 @@ export function DevicesPage() {
 
   return (
     <div>
-      <h2>Devices</h2>
+      <div className="page-head">
+        <h1>Devices</h1>
+        <p>Registered radars. A deactivated device gets 403 on ingest — its events stop cold.</p>
+      </div>
       <form
         className="filters"
+        aria-label="Register device"
         onSubmit={(e) => {
           e.preventDefault()
           create.mutate()
         }}
       >
-        <input placeholder="Device code" value={code} onChange={(e) => setCode(e.target.value)} />
-        <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-        <button type="submit">Register</button>
+        <div className="field">
+          <label htmlFor="d-code">Device code</label>
+          <input id="d-code" placeholder="RADAR-002" value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" />
+        </div>
+        <div className="field">
+          <label htmlFor="d-name">Name</label>
+          <input id="d-name" placeholder="North gate radar" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />
+        </div>
+        <button className="btn" type="submit">
+          Register
+        </button>
       </form>
       {query.isPending && <Loading what="devices" />}
       {query.isError && <ErrorBox message={(query.error as Error).message} onRetry={() => query.refetch()} />}
       {query.data && query.data.length === 0 && <Empty what="devices" />}
       {query.data && query.data.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>Code</th>
-              <th>Name</th>
-              <th>Active</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {query.data.map((d) => (
-              <tr key={d.deviceCode}>
-                <td>{d.deviceCode}</td>
-                <td>{d.name}</td>
-                <td>{d.active ? 'yes' : 'no'}</td>
-                <td>
-                  <button onClick={() => toggle.mutate(d)}>
-                    {d.active ? 'Deactivate' : 'Activate'}
-                  </button>
-                </td>
+        <div className="table-scroll">
+          <table className="grid">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {query.data.map((d) => (
+                <tr key={d.deviceCode}>
+                  <td className="mono">{d.deviceCode}</td>
+                  <td>{d.name}</td>
+                  <td>
+                    <span className={d.active ? 'pill pill-on' : 'pill pill-bad'}>
+                      {d.active ? 'ACTIVE' : 'DEACTIVATED'}
+                    </span>
+                  </td>
+                  <td>
+                    <button className="btn-ghost btn btn-sm" onClick={() => toggle.mutate(d)}>
+                      {d.active ? 'Deactivate' : 'Activate'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {(create.isError || toggle.isError) && (
+        <p className="error-text">{((create.error ?? toggle.error) as Error).message}</p>
       )}
     </div>
   )

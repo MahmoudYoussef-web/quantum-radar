@@ -22,67 +22,94 @@ export function RulesPage() {
 
   return (
     <div>
-      <h2>Rules</h2>
+      <div className="page-head">
+        <h1>Rules</h1>
+        <p>
+          The rule book. Changes apply to the next observation — no deploy. Disabling a
+          rule stops it from matching immediately.
+        </p>
+      </div>
       {query.isPending && <Loading what="rules" />}
       {query.isError && <ErrorBox message={(query.error as Error).message} onRetry={() => query.refetch()} />}
       {query.data && query.data.length === 0 && <Empty what="rules" />}
       {query.data && query.data.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>Code</th>
-              <th>Name</th>
-              <th>Enabled</th>
-              <th>Fee</th>
-              <th>Points</th>
-              <th>Max speed</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {query.data.map((r) => (
-              <tr key={r.code}>
-                <td>{r.code}</td>
-                <td>{r.displayName}</td>
-                <td>{r.enabled ? 'yes' : 'no'}</td>
-                <td>
-                  {editing === r.code ? (
-                    <input value={fee} onChange={(e) => setFee(e.target.value)} size={6} />
-                  ) : (
-                    r.fee
-                  )}
-                </td>
-                <td>{r.penaltyPoints}</td>
-                <td>{r.maxSpeed ?? '—'}</td>
-                <td className="actions">
-                  <button
-                    onClick={() =>
-                      update.mutate({ code: r.code, body: { enabled: !r.enabled } })
-                    }
-                  >
-                    {r.enabled ? 'Disable' : 'Enable'}
-                  </button>
-                  {editing === r.code ? (
-                    <button
-                      onClick={() => update.mutate({ code: r.code, body: { fee: Number(fee) } })}
-                    >
-                      Save
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setEditing(r.code)
-                        setFee(String(r.fee))
-                      }}
-                    >
-                      Edit fee
-                    </button>
-                  )}
-                </td>
+        <div className="table-scroll">
+          <table className="grid">
+            <thead>
+              <tr>
+                <th>Rule</th>
+                <th>Status</th>
+                <th className="num">Fee (EGP)</th>
+                <th className="num">Points</th>
+                <th className="num">Max speed</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {query.data.map((r) => (
+                <tr key={r.code}>
+                  <td>
+                    <div className="mono">{r.code}</div>
+                    <div className="muted" style={{ fontSize: '0.82rem' }}>{r.displayName}</div>
+                  </td>
+                  <td>
+                    <span className={r.enabled ? 'pill pill-on' : 'pill pill-off'}>
+                      {r.enabled ? 'ENABLED' : 'DISABLED'}
+                    </span>
+                  </td>
+                  <td className="num">
+                    {editing === r.code ? (
+                      <>
+                        <label className="muted" htmlFor={`fee-${r.code}`} style={{ display: 'none' }}>
+                          Fee for {r.code}
+                        </label>
+                        <input
+                          id={`fee-${r.code}`}
+                          value={fee}
+                          onChange={(e) => setFee(e.target.value)}
+                          size={6}
+                          inputMode="numeric"
+                        />
+                      </>
+                    ) : (
+                      r.fee
+                    )}
+                  </td>
+                  <td className="num">{r.penaltyPoints}</td>
+                  <td className="num">{r.maxSpeed === null ? '—' : `${r.maxSpeed} km/h`}</td>
+                  <td>
+                    <span className="actions" style={{ display: 'flex', gap: '0.4rem' }}>
+                      <button
+                        className="btn-ghost btn btn-sm"
+                        onClick={() => update.mutate({ code: r.code, body: { enabled: !r.enabled } })}
+                      >
+                        {r.enabled ? 'Disable' : 'Enable'}
+                      </button>
+                      {editing === r.code ? (
+                        <button
+                          className="btn btn-sm"
+                          onClick={() => update.mutate({ code: r.code, body: { fee: Number(fee) } })}
+                        >
+                          Save
+                        </button>
+                      ) : (
+                        <button
+                          className="btn-ghost btn btn-sm"
+                          onClick={() => {
+                            setEditing(r.code)
+                            setFee(String(r.fee))
+                          }}
+                        >
+                          Edit fee
+                        </button>
+                      )}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       {update.isError && <p className="error-text">{(update.error as Error).message}</p>}
     </div>
