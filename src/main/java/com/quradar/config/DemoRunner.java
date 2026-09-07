@@ -2,17 +2,16 @@ package com.quradar.config;
 
 import com.quradar.common.CarType;
 import com.quradar.fine.FineQueryService;
+import com.quradar.ingestion.LightState;
 import com.quradar.ingestion.Observation;
 import com.quradar.rules.QuRadar;
-import com.quradar.rules.SeatbeltRule;
-import com.quradar.rules.SpeedLimitRule;
 import java.time.LocalDate;
 import java.util.Map;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
-/** Demo runner carrying the original Main scenario; replaced by REST ingestion in P4. */
+/** Demo runner carrying the original scenario; replaced by REST ingestion in P4. */
 @Component
 public class DemoRunner implements ApplicationRunner {
 
@@ -26,14 +25,14 @@ public class DemoRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        radar.addRule(new SeatbeltRule());
-        radar.addRule(new SpeedLimitRule(CarType.TRUCK, 60, 300));
-        radar.addRule(new SpeedLimitRule(CarType.PRIVATE, 80, 300));
-
-        radar.processObservation(new Observation("ABC1234", LocalDate.now(), CarType.PRIVATE, 94, false));
-        radar.processObservation(new Observation("XYZ777", LocalDate.now(), CarType.TRUCK, 75, true));
-        radar.processObservation(new Observation("CLN001", LocalDate.now(), CarType.PRIVATE, 60, true));
-        radar.processObservation(new Observation("ABC1234", LocalDate.now(), CarType.PRIVATE, 90, true));
+        radar.processObservation(new Observation("ABC1234", LocalDate.now(), CarType.PRIVATE, 94,
+                false, null, null, LightState.GREEN, false));
+        radar.processObservation(new Observation("XYZ777", LocalDate.now(), CarType.TRUCK, 75,
+                true, null, null, LightState.GREEN, false));
+        radar.processObservation(new Observation("CLN001", LocalDate.now(), CarType.PRIVATE, 60,
+                true, null, null, LightState.GREEN, false));
+        radar.processObservation(new Observation("ABC1234", LocalDate.now(), CarType.PRIVATE, 90,
+                true, null, null, LightState.GREEN, false));
 
         System.out.println();
         System.out.println("=== All possible fines ===");

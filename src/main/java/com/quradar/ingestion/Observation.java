@@ -10,13 +10,23 @@ public class Observation {
     private CarType carType;
     private int speed;
     private boolean seatbeltFastened;
+    private Double latitude;
+    private Double longitude;
+    private LightState lightState;
+    private boolean crossedStopLine;
 
-    public Observation(String plateNumber, LocalDate date, CarType carType, int speed, boolean seatbeltFastened) {
+    public Observation(String plateNumber, LocalDate date, CarType carType, int speed,
+                       boolean seatbeltFastened, Double latitude, Double longitude,
+                       LightState lightState, boolean crossedStopLine) {
         this.plateNumber = plateNumber;
         this.date = date;
         this.carType = carType;
         this.speed = speed;
         this.seatbeltFastened = seatbeltFastened;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.lightState = lightState;
+        this.crossedStopLine = crossedStopLine;
     }
 
     public String getPlateNumber() {
@@ -37,5 +47,21 @@ public class Observation {
 
     public boolean isSeatbeltFastened() {
         return seatbeltFastened;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public LightState getLightState() {
+        return lightState;
+    }
+
+    public boolean isCrossedStopLine() {
+        return crossedStopLine;
     }
 }

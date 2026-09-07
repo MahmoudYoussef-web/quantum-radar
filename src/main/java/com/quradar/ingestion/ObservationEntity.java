@@ -36,6 +36,19 @@ public class ObservationEntity {
     @Column(name = "seatbelt_fastened", nullable = false)
     private boolean seatbeltFastened;
 
+    @Column
+    private Double latitude;
+
+    @Column
+    private Double longitude;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "light_state", length = 8)
+    private LightState lightState;
+
+    @Column(name = "crossed_stop_line", nullable = false)
+    private boolean crossedStopLine;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -43,12 +56,17 @@ public class ObservationEntity {
     }
 
     public ObservationEntity(String plateNumber, LocalDate observedAt, CarType carType,
-                             int speed, boolean seatbeltFastened) {
+                             int speed, boolean seatbeltFastened, Double latitude,
+                             Double longitude, LightState lightState, boolean crossedStopLine) {
         this.plateNumber = plateNumber;
         this.observedAt = observedAt;
         this.carType = carType;
         this.speed = speed;
         this.seatbeltFastened = seatbeltFastened;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.lightState = lightState;
+        this.crossedStopLine = crossedStopLine;
         this.createdAt = Instant.now();
     }
 
@@ -74,6 +92,22 @@ public class ObservationEntity {
 
     public boolean isSeatbeltFastened() {
         return seatbeltFastened;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public LightState getLightState() {
+        return lightState;
+    }
+
+    public boolean isCrossedStopLine() {
+        return crossedStopLine;
     }
 
     public Instant getCreatedAt() {

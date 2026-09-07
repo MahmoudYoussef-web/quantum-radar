@@ -1,14 +1,15 @@
 package com.quradar.rules;
 
+import com.quradar.ingestion.LightState;
 import com.quradar.ingestion.Observation;
 import com.quradar.violation.Violation;
 
-public class SeatbeltRule implements ViolationRule {
+public class RedLightRule implements ViolationRule {
 
     private final String code;
     private final int fee;
 
-    public SeatbeltRule(String code, int fee) {
+    public RedLightRule(String code, int fee) {
         this.code = code;
         this.fee = fee;
     }
@@ -20,7 +21,7 @@ public class SeatbeltRule implements ViolationRule {
 
     @Override
     public boolean matches(Observation observation) {
-        return !observation.isSeatbeltFastened();
+        return observation.getLightState() == LightState.RED && observation.isCrossedStopLine();
     }
 
     @Override
@@ -28,6 +29,6 @@ public class SeatbeltRule implements ViolationRule {
         if (!matches(observation)) {
             return null;
         }
-        return new Violation(code, "Seatbelt not fastened", fee);
+        return new Violation(code, "crossed stop line on red light", fee);
     }
 }

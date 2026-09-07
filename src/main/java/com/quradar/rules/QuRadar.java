@@ -13,35 +13,33 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Rule engine orchestrator. Stateless except for the injected rule list;
- * all state lives in Postgres (observations, fines, violations).
- * NOTE: in-memory aggregation was deleted in P2 (no compat shim) and now
- * lives as DB queries in FineQueryService.
+ * Rule engine orchestrator. Rules come from DB configuration on every call,
+ * so ADMIN edits apply without redeploy. All state lives in Postgres.
  */
 @Service
 public class QuRadar {
 
-    private final List<ViolationRule> rules = new ArrayList<>();
+    private final RuleConfigService ruleConfigs;
     private final ObservationRepository observations;
     private final FineRepository fines;
 
-    public QuRadar(ObservationRepository observations, FineRepository fines) {
+    public QuRadar(RuleConfigService ruleConfigs, ObservationRepository observations,
+                   FineRepository fines) {
+        this.ruleConfigs = ruleConfigs;
         this.observations = observations;
         this.fines = fines;
-    }
-
-    public void addRule(ViolationRule rule) {
-        rules.add(rule);
     }
 
     @Transactional
     public Fine processObservation(Observation observation) {
         List<Violation> violations = new ArrayList<>();
 
-        for (ViolationRule rule : rules) {
-            Violation violation = rule.evaluate(observation);
-            if (violation != null) {
-                violations.add(violation);
+        for (ViolationRule rule : ruleConfigs.buildEnabledRules()) {
+            if (rule.matches(observation)) {
+                Violation violation = rule.evaluate(observation);
+                if (violation != null) {
+                    violations.add(violation);
+                }
             }
         }
 
@@ -54,7 +52,11 @@ public class QuRadar {
                 observation.getDate(),
                 observation.getCarType(),
                 observation.getSpeed(),
-                observation.isSeatbeltFastened()));
+                observation.isSeatbeltFastened(),
+                observation.getLatitude(),
+                observation.getLongitude(),
+                observation.getLightState(),
+                observation.isCrossedStopLine()));
 
         int total = violations.stream().mapToInt(Violation::getFee).sum();
         FineEntity fineEntity = new FineEntity(observation.getPlateNumber(), total, observationEntity);
