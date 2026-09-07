@@ -1,6 +1,6 @@
 # QuRadar Admin
 
-Small admin UI for the [Quantum Radar](../quantum-radar) backend — violations table
+Small admin UI for the [Quantum Radar](../backend) backend — violations table
 (filter/sort/paginate), rule management (enable, edit fees), device list, and
 driver/vehicle lookup with violation history. Loading, empty, and error states
 throughout. No maps, no real-time push, no charts — those are documented v3 ideas
@@ -21,8 +21,8 @@ once on 401 and otherwise sends you back to `/login`.
 ## Full stack
 
 ```bash
-# from the backend repo (this folder must sit next to it):
-cd ../quantum-radar
+# full stack from the monorepo backend dir:
+cd ../backend
 docker compose up --build
 # backend :8080, admin UI :5173
 ```

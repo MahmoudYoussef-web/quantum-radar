@@ -5,7 +5,7 @@ engine evaluates them, and the service persists violations + tiered fines + driv
 penalty points. Single Spring Boot modular monolith — no microservices.
 
 ```bash
-# one-command local run (needs the admin repo next to this one for the UI)
+# one-command local run from backend/ (monorepo: UI lives in ../frontend)
 docker compose up --build
 # backend :8080 · admin UI :5173 · postgres :5432 · redis :6379
 ```

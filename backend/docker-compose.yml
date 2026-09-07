@@ -47,11 +47,10 @@ services:
       redis:
         condition: service_healthy
 
-  # Admin UI lives in a separate repo (quantum-radar-admin). Clone it next to
-  # this repo, then `docker compose up --build` runs all four services.
+  # Admin UI lives in frontend/ of this monorepo. Run compose from backend/.
   frontend:
     build:
-      context: ../quantum-radar-admin
+      context: ../frontend
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
     ports:
