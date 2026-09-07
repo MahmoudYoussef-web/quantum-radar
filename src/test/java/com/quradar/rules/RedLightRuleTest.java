@@ -15,7 +15,7 @@ class RedLightRuleTest {
     private final RedLightRule rule = new RedLightRule("RED_LIGHT", 500);
 
     private Observation observation(LightState light, boolean crossed) {
-        return new Observation("P1", LocalDate.now(), CarType.PRIVATE, 40, true,
+        return new Observation("evt-1", null, "P1", LocalDate.now(), CarType.PRIVATE, 40, true,
                 null, null, light, crossed);
     }
 

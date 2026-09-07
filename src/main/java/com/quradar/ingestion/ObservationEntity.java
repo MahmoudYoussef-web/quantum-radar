@@ -1,6 +1,7 @@
 package com.quradar.ingestion;
 
 import com.quradar.common.CarType;
+import com.quradar.device.DeviceEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -8,6 +9,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -19,6 +22,13 @@ public class ObservationEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "event_id", nullable = false, unique = true, length = 64)
+    private String eventId;
+
+    @ManyToOne
+    @JoinColumn(name = "device_id")
+    private DeviceEntity device;
 
     @Column(name = "plate_number", nullable = false, length = 32)
     private String plateNumber;
@@ -55,9 +65,12 @@ public class ObservationEntity {
     protected ObservationEntity() {
     }
 
-    public ObservationEntity(String plateNumber, LocalDate observedAt, CarType carType,
-                             int speed, boolean seatbeltFastened, Double latitude,
-                             Double longitude, LightState lightState, boolean crossedStopLine) {
+    public ObservationEntity(String eventId, DeviceEntity device, String plateNumber,
+                             LocalDate observedAt, CarType carType, int speed,
+                             boolean seatbeltFastened, Double latitude, Double longitude,
+                             LightState lightState, boolean crossedStopLine) {
+        this.eventId = eventId;
+        this.device = device;
         this.plateNumber = plateNumber;
         this.observedAt = observedAt;
         this.carType = carType;
@@ -72,6 +85,14 @@ public class ObservationEntity {
 
     public Long getId() {
         return id;
+    }
+
+    public String getEventId() {
+        return eventId;
+    }
+
+    public DeviceEntity getDevice() {
+        return device;
     }
 
     public String getPlateNumber() {

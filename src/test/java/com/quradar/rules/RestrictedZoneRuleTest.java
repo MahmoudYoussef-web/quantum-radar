@@ -16,7 +16,7 @@ class RestrictedZoneRuleTest {
             new RestrictedZoneRule("RESTRICTED_ZONE", 30.00, 30.10, 31.10, 31.30, 500);
 
     private Observation observation(Double lat, Double lon) {
-        return new Observation("P1", LocalDate.now(), CarType.PRIVATE, 50, true,
+        return new Observation("evt-1", null, "P1", LocalDate.now(), CarType.PRIVATE, 50, true,
                 lat, lon, LightState.GREEN, false);
     }
 

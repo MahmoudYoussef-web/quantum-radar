@@ -1,5 +1,9 @@
 package com.quradar.rules;
 
+import com.quradar.device.DeviceEntity;
+import com.quradar.device.DeviceNotFoundException;
+import com.quradar.device.DeviceRepository;
+import com.quradar.device.InactiveDeviceException;
 import com.quradar.fine.Fine;
 import com.quradar.fine.FineEntity;
 import com.quradar.fine.FineRepository;
@@ -13,27 +17,38 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Rule engine orchestrator. Rules come from DB configuration on every call,
- * so ADMIN edits apply without redeploy. All state lives in Postgres.
+ * Rule engine orchestrator. One transaction per observation: validate device,
+ * run DB-configured rules, persist observation + fine + violations atomically.
+ * A duplicate eventId violates the DB unique constraint and fails closed (409).
  */
 @Service
 public class QuRadar {
 
     private final RuleConfigService ruleConfigs;
+    private final DeviceRepository devices;
     private final ObservationRepository observations;
     private final FineRepository fines;
 
-    public QuRadar(RuleConfigService ruleConfigs, ObservationRepository observations,
-                   FineRepository fines) {
+    public QuRadar(RuleConfigService ruleConfigs, DeviceRepository devices,
+                   ObservationRepository observations, FineRepository fines) {
         this.ruleConfigs = ruleConfigs;
+        this.devices = devices;
         this.observations = observations;
         this.fines = fines;
     }
 
     @Transactional
     public Fine processObservation(Observation observation) {
-        List<Violation> violations = new ArrayList<>();
+        DeviceEntity device = null;
+        if (observation.getDeviceCode() != null) {
+            device = devices.findByDeviceCode(observation.getDeviceCode())
+                    .orElseThrow(() -> new DeviceNotFoundException(observation.getDeviceCode()));
+            if (!device.isActive()) {
+                throw new InactiveDeviceException(device.getDeviceCode());
+            }
+        }
 
+        List<Violation> violations = new ArrayList<>();
         for (ViolationRule rule : ruleConfigs.buildEnabledRules()) {
             if (rule.matches(observation)) {
                 Violation violation = rule.evaluate(observation);
@@ -48,6 +63,8 @@ public class QuRadar {
         }
 
         ObservationEntity observationEntity = observations.save(new ObservationEntity(
+                observation.getEventId(),
+                device,
                 observation.getPlateNumber(),
                 observation.getDate(),
                 observation.getCarType(),

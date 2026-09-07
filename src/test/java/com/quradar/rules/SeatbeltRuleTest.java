@@ -17,7 +17,7 @@ class SeatbeltRuleTest {
     private final SeatbeltRule rule = new SeatbeltRule("SEATBELT", 100);
 
     private Observation observation(boolean fastened) {
-        return new Observation("P1", LocalDate.now(), CarType.PRIVATE, 50, fastened,
+        return new Observation("evt-1", null, "P1", LocalDate.now(), CarType.PRIVATE, 50, fastened,
                 null, null, LightState.GREEN, false);
     }
 

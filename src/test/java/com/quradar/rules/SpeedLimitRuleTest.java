@@ -17,7 +17,7 @@ class SpeedLimitRuleTest {
     private final SpeedLimitRule rule = new SpeedLimitRule("SPEED_LIMIT_PRIVATE", CarType.PRIVATE, 80, 300);
 
     private Observation observation(CarType type, int speed) {
-        return new Observation("P1", LocalDate.now(), type, speed, true,
+        return new Observation("evt-1", null, "P1", LocalDate.now(), type, speed, true,
                 null, null, LightState.GREEN, false);
     }
 
