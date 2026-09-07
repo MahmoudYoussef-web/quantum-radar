@@ -1,18 +1,31 @@
-package com.quradar;
+package com.quradar.config;
 
 import com.quradar.common.CarType;
+import com.quradar.fine.FineQueryService;
 import com.quradar.ingestion.Observation;
 import com.quradar.rules.QuRadar;
 import com.quradar.rules.SeatbeltRule;
 import com.quradar.rules.SpeedLimitRule;
 import java.time.LocalDate;
 import java.util.Map;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.stereotype.Component;
 
-public class Main {
+/** Demo runner carrying the original Main scenario; replaced by REST ingestion in P4. */
+@Component
+public class DemoRunner implements ApplicationRunner {
 
-    public static void main(String[] args) {
-        QuRadar radar = new QuRadar();
+    private final QuRadar radar;
+    private final FineQueryService queries;
 
+    public DemoRunner(QuRadar radar, FineQueryService queries) {
+        this.radar = radar;
+        this.queries = queries;
+    }
+
+    @Override
+    public void run(ApplicationArguments args) {
         radar.addRule(new SeatbeltRule());
         radar.addRule(new SpeedLimitRule(CarType.TRUCK, 60, 300));
         radar.addRule(new SpeedLimitRule(CarType.PRIVATE, 80, 300));
@@ -25,16 +38,14 @@ public class Main {
         System.out.println();
         System.out.println("=== All possible fines ===");
 
-        Map<String, Integer> fines = radar.getAllPossibleFines();
-        for (Map.Entry<String, Integer> entry : fines.entrySet()) {
+        for (Map.Entry<String, Integer> entry : queries.getTotalFinesByPlate().entrySet()) {
             System.out.println(entry.getKey() + " : " + entry.getValue() + " EGP");
         }
 
         System.out.println();
         System.out.println("=== All violated rules ===");
 
-        Map<String, Integer> violatedRules = radar.getAllViolatedRules();
-        for (Map.Entry<String, Integer> entry : violatedRules.entrySet()) {
+        for (Map.Entry<String, Long> entry : queries.getViolationCountsByRule().entrySet()) {
             System.out.println(entry.getKey() + " : " + entry.getValue());
         }
     }

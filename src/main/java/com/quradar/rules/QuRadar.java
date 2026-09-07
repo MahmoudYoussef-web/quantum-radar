@@ -1,35 +1,40 @@
 package com.quradar.rules;
 
 import com.quradar.fine.Fine;
+import com.quradar.fine.FineEntity;
+import com.quradar.fine.FineRepository;
 import com.quradar.ingestion.Observation;
+import com.quradar.ingestion.ObservationEntity;
+import com.quradar.ingestion.ObservationRepository;
 import com.quradar.violation.Violation;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * This is the main class of the system.
- * It takes an observation from the radar (plate, date, car type,
- * speed, seatbelt status) - the radar itself is assumed to use an
- * AI model to get this info.
- * It runs the rules on the observation, and if something is wrong
- * it creates a fine. You can add new rules without changing this class.
+ * Rule engine orchestrator. Stateless except for the injected rule list;
+ * all state lives in Postgres (observations, fines, violations).
+ * NOTE: in-memory aggregation was deleted in P2 (no compat shim) and now
+ * lives as DB queries in FineQueryService.
  */
+@Service
 public class QuRadar {
 
-    private List<ViolationRule> rules;
-    private List<Fine> fines;
+    private final List<ViolationRule> rules = new ArrayList<>();
+    private final ObservationRepository observations;
+    private final FineRepository fines;
 
-    public QuRadar() {
-        this.rules = new ArrayList<>();
-        this.fines = new ArrayList<>();
+    public QuRadar(ObservationRepository observations, FineRepository fines) {
+        this.observations = observations;
+        this.fines = fines;
     }
 
     public void addRule(ViolationRule rule) {
         rules.add(rule);
     }
 
+    @Transactional
     public Fine processObservation(Observation observation) {
         List<Violation> violations = new ArrayList<>();
 
@@ -44,46 +49,23 @@ public class QuRadar {
             return null;
         }
 
+        ObservationEntity observationEntity = observations.save(new ObservationEntity(
+                observation.getPlateNumber(),
+                observation.getDate(),
+                observation.getCarType(),
+                observation.getSpeed(),
+                observation.isSeatbeltFastened()));
+
+        int total = violations.stream().mapToInt(Violation::getFee).sum();
+        FineEntity fineEntity = new FineEntity(observation.getPlateNumber(), total, observationEntity);
+        for (Violation violation : violations) {
+            fineEntity.addViolation(violation.getRuleName(), violation.getDescription(), violation.getFee());
+        }
+        fines.save(fineEntity);
+
         Fine fine = new Fine(observation.getPlateNumber(), violations);
-        fines.add(fine);
         fine.print();
 
         return fine;
-    }
-
-    public Map<String, Integer> getAllPossibleFines() {
-        Map<String, Integer> result = new LinkedHashMap<>();
-
-        for (Fine fine : fines) {
-            String plate = fine.getPlateNumber();
-
-            if (result.containsKey(plate)) {
-                int current = result.get(plate);
-                result.put(plate, current + fine.getTotalAmount());
-            } else {
-                result.put(plate, fine.getTotalAmount());
-            }
-        }
-
-        return result;
-    }
-
-    public Map<String, Integer> getAllViolatedRules() {
-        Map<String, Integer> result = new LinkedHashMap<>();
-
-        for (Fine fine : fines) {
-            for (Violation violation : fine.getViolations()) {
-                String ruleName = violation.getRuleName();
-
-                if (result.containsKey(ruleName)) {
-                    int current = result.get(ruleName);
-                    result.put(ruleName, current + 1);
-                } else {
-                    result.put(ruleName, 1);
-                }
-            }
-        }
-
-        return result;
     }
 }
