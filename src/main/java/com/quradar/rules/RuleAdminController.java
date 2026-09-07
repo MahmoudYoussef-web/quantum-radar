@@ -2,6 +2,7 @@ package com.quradar.rules;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -9,9 +10,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** NOTE: no auth until P6 — local-only. P6 restricts this to ADMIN. */
+/** Rule configuration is ADMIN-only. */
 @RestController
 @RequestMapping("/api/v1/rules")
+@PreAuthorize("hasRole('ADMIN')")
 public class RuleAdminController {
 
     private final RuleConfigService service;

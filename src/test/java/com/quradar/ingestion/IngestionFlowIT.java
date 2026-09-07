@@ -5,11 +5,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -18,8 +23,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Full ingestion flow against real Postgres: first submission persists (201),
- * resubmission of the same eventId fails closed (409) and creates nothing new.
+ * Full ingestion flow against real Postgres with JWT auth: first submission
+ * persists (201), resubmission of the same eventId fails closed (409) and
+ * creates nothing new; unauthenticated calls are rejected (401).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "quradar.demo.enabled=false")
@@ -42,15 +48,32 @@ class IngestionFlowIT {
     @Autowired
     private ObservationRepository observations;
 
+    private String adminToken;
+
+    @BeforeEach
+    void login() {
+        ResponseEntity<Map> response = rest.postForEntity("/api/v1/auth/login",
+                Map.of("username", "admin", "password", "admin123"), Map.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        adminToken = "Bearer " + response.getBody().get("accessToken");
+    }
+
+    private HttpEntity<Map<String, Object>> authorized(Map<String, Object> body) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", adminToken);
+        return new HttpEntity<>(body, headers);
+    }
+
     private Map<String, Object> event(String eventId) {
-        return Map.of(
+        return new java.util.HashMap<>(Map.of(
                 "eventId", eventId,
                 "deviceCode", "RADAR-001",
                 "plateNumber", "TST-" + eventId.substring(0, 4),
                 "observedAt", LocalDate.now().toString(),
                 "carType", "PRIVATE",
                 "speed", 95,
-                "seatbeltFastened", true);
+                "seatbeltFastened", true));
     }
 
     @Test
@@ -58,11 +81,13 @@ class IngestionFlowIT {
         String eventId = UUID.randomUUID().toString();
         long before = observations.count();
 
-        ResponseEntity<Map> first = rest.postForEntity("/api/v1/events", event(eventId), Map.class);
+        ResponseEntity<Map> first = rest.exchange("/api/v1/events", HttpMethod.POST,
+                authorized(event(eventId)), Map.class);
         assertEquals(HttpStatus.CREATED, first.getStatusCode());
         assertEquals(before + 1, observations.count());
 
-        ResponseEntity<Map> replay = rest.postForEntity("/api/v1/events", event(eventId), Map.class);
+        ResponseEntity<Map> replay = rest.exchange("/api/v1/events", HttpMethod.POST,
+                authorized(event(eventId)), Map.class);
         assertEquals(HttpStatus.CONFLICT, replay.getStatusCode());
         assertEquals(before + 1, observations.count());
     }
@@ -70,16 +95,30 @@ class IngestionFlowIT {
     @Test
     void unknownDeviceIsRejected() {
         Map<String, Object> body = event(UUID.randomUUID().toString());
-        body = new java.util.HashMap<>(body);
         body.put("deviceCode", "GHOST-9");
-        ResponseEntity<Map> response = rest.postForEntity("/api/v1/events", body, Map.class);
+        ResponseEntity<Map> response = rest.exchange("/api/v1/events", HttpMethod.POST,
+                authorized(body), Map.class);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 
     @Test
     void invalidPayloadIsRejected() {
-        ResponseEntity<Map> response =
-                rest.postForEntity("/api/v1/events", Map.of("eventId", "x"), Map.class);
+        ResponseEntity<Map> response = rest.exchange("/api/v1/events", HttpMethod.POST,
+                authorized(Map.of("eventId", "x")), Map.class);
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    void unauthenticatedIsRejected() {
+        ResponseEntity<Map> response = rest.postForEntity("/api/v1/events",
+                event(UUID.randomUUID().toString()), Map.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    @Test
+    void wrongPasswordIsRejected() {
+        ResponseEntity<Map> response = rest.postForEntity("/api/v1/auth/login",
+                Map.of("username", "admin", "password", "wrong"), Map.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 }

@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.quradar.security.JwtService;
+import com.quradar.security.UserRepository;
 import java.lang.reflect.Field;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -27,6 +29,12 @@ class RuleAdminControllerTest {
 
     @MockBean
     private RuleConfigService service;
+
+    @MockBean
+    private JwtService jwtService;
+
+    @MockBean
+    private UserRepository userRepository;
 
     private static RuleConfig config(String code, boolean enabled, int fee) throws Exception {
         RuleConfig config = new RuleConfig();

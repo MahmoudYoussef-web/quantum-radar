@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,9 +16,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** NOTE: no JWT until P6 — local-only. P6 restricts this to ADMIN. */
+/** Fine-tier policy is ADMIN-only. */
 @RestController
 @RequestMapping("/api/v1/fine-tiers")
+@PreAuthorize("hasRole('ADMIN')")
 public class FineTierAdminController {
 
     private final FineTierRepository tiers;
