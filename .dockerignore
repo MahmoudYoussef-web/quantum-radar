@@ -1,0 +1,5 @@
+target/
+.git/
+out/
+*.log
+*.txt

@@ -1,0 +1,63 @@
+name: quantum-radar
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: quradar
+      POSTGRES_PASSWORD: quradar
+      POSTGRES_DB: quradar
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quradar -d quradar"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/quradar
+      SPRING_DATASOURCE_USERNAME: quradar
+      SPRING_DATASOURCE_PASSWORD: quradar
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # Change in production; dev defaults only.
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-that-is-at-least-32-bytes-long!}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Admin UI lives in a separate repo (quantum-radar-admin). Clone it next to
+  # this repo, then `docker compose up --build` runs all four services.
+  frontend:
+    build:
+      context: ../quantum-radar-admin
+    ports:
+      - "5173:80"
+    environment:
+      VITE_API_URL: http://localhost:8080
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
