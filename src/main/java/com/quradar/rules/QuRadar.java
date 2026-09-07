@@ -1,5 +1,8 @@
-package quradar;
+package com.quradar.rules;
 
+import com.quradar.fine.Fine;
+import com.quradar.ingestion.Observation;
+import com.quradar.violation.Violation;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

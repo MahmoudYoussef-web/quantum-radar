@@ -24,13 +24,7 @@
     <testcontainers.version>1.19.8</testcontainers.version>
   </properties>
 
-  <!--
-    P0 TEMPORARY: toy code lives in src/quradar (not Maven-standard src/main/java).
-    sourceDirectory is overridden so `mvn compile` works with zero moves.
-    P1 WILL remove this and migrate to src/main/java/... modular monolith layout.
-  -->
   <build>
-    <sourceDirectory>src</sourceDirectory>
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>

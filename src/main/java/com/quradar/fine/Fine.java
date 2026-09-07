@@ -1,5 +1,6 @@
-package quradar;
+package com.quradar.fine;
 
+import com.quradar.violation.Violation;
 import java.util.ArrayList;
 import java.util.List;
 

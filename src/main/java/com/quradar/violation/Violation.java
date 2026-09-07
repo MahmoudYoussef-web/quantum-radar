@@ -1,4 +1,4 @@
-package quradar;
+package com.quradar.violation;
 
 public class Violation {
 

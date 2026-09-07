@@ -1,5 +1,10 @@
-package quradar;
+package com.quradar;
 
+import com.quradar.common.CarType;
+import com.quradar.ingestion.Observation;
+import com.quradar.rules.QuRadar;
+import com.quradar.rules.SeatbeltRule;
+import com.quradar.rules.SpeedLimitRule;
 import java.time.LocalDate;
 import java.util.Map;
 

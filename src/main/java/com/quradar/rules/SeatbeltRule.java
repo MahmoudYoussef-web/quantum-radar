@@ -1,4 +1,7 @@
-package quradar;
+package com.quradar.rules;
+
+import com.quradar.ingestion.Observation;
+import com.quradar.violation.Violation;
 
 public class SeatbeltRule implements ViolationRule {
 

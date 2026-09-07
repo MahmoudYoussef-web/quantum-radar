@@ -1,4 +1,8 @@
-package quradar;
+package com.quradar.rules;
+
+import com.quradar.common.CarType;
+import com.quradar.ingestion.Observation;
+import com.quradar.violation.Violation;
 
 public class SpeedLimitRule implements ViolationRule {
 

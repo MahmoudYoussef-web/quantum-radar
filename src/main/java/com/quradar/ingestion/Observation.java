@@ -1,5 +1,6 @@
-package quradar;
+package com.quradar.ingestion;
 
+import com.quradar.common.CarType;
 import java.time.LocalDate;
 
 public class Observation {
