@@ -38,6 +38,24 @@ export interface RuleConfig {
   maxSpeed: number | null
 }
 
+export interface RuleVersion {
+  code: string
+  version: number
+  enabled: boolean
+  fee: number
+  penaltyPoints: number
+  maxSpeed: number | null
+  effectiveFrom: string
+}
+
+export interface FineTier {
+  id: number
+  ruleCode: string
+  overFrom: number
+  overTo: number | null
+  fee: number
+}
+
 export interface Device {
   deviceCode: string
   name: string
