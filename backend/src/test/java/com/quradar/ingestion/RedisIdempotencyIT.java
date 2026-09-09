@@ -91,7 +91,7 @@ class RedisIdempotencyIT {
         ResponseEntity<Map> first = rest.exchange("/api/v1/events", HttpMethod.POST,
                 new HttpEntity<>(event(eventId), headers), Map.class);
         assertEquals(HttpStatus.CREATED, first.getStatusCode());
-        assertTrue(Boolean.TRUE.equals(redisTemplate.hasKey("idem:event:" + eventId)));
+        assertTrue(Boolean.TRUE.equals(redisTemplate.hasKey("idem:event:RADAR-001:" + eventId)));
 
         violations.deleteAll();
         fines.deleteAll();

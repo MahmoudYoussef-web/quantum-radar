@@ -118,6 +118,27 @@ class IngestionFlowIT {
     }
 
     @Test
+    void sameEventIdFromAnotherDeviceIsAccepted() {
+        ResponseEntity<Map> device = rest.exchange("/api/v1/devices", HttpMethod.POST,
+                authorized(new java.util.HashMap<>(
+                        Map.of("deviceCode", "RADAR-002", "name", "Second radar"))),
+                Map.class);
+        assertEquals(HttpStatus.CREATED, device.getStatusCode());
+
+        String eventId = UUID.randomUUID().toString();
+        Map<String, Object> first = event(eventId);
+        ResponseEntity<Map> one = rest.exchange("/api/v1/events", HttpMethod.POST,
+                authorized(first), Map.class);
+        assertEquals(HttpStatus.CREATED, one.getStatusCode());
+
+        Map<String, Object> second = event(eventId);
+        second.put("deviceCode", "RADAR-002");
+        ResponseEntity<Map> two = rest.exchange("/api/v1/events", HttpMethod.POST,
+                authorized(second), Map.class);
+        assertEquals(HttpStatus.CREATED, two.getStatusCode());
+    }
+
+    @Test
     void unknownDeviceIsRejected() {
         Map<String, Object> body = event(UUID.randomUUID().toString());
         body.put("deviceCode", "GHOST-9");

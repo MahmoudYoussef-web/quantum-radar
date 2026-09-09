@@ -64,7 +64,8 @@ public class QuRadar {
 
     @Transactional
     public Fine processObservation(Observation observation) {
-        if (observation.getEventId() != null && idempotencyCache.seen(observation.getEventId())) {
+        if (observation.getEventId() != null
+                && idempotencyCache.seen(observation.getEventId(), observation.getDeviceCode())) {
             throw new DuplicateEventException(observation.getEventId());
         }
         DeviceEntity device = null;
@@ -118,10 +119,11 @@ public class QuRadar {
 
         if (observation.getEventId() != null) {
             String eventId = observation.getEventId();
+            String deviceCode = observation.getDeviceCode();
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    idempotencyCache.mark(eventId);
+                    idempotencyCache.mark(eventId, deviceCode);
                 }
             });
         }
