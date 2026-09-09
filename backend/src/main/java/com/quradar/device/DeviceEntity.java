@@ -25,6 +25,15 @@ public class DeviceEntity {
     @Column(nullable = false)
     private boolean active;
 
+    @Column(name = "last_seen_at")
+    private Instant lastSeenAt;
+
+    @Column(name = "firmware_version", length = 32)
+    private String firmwareVersion;
+
+    @Column(name = "last_ip", length = 64)
+    private String lastIp;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -56,5 +65,31 @@ public class DeviceEntity {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public Instant getLastSeenAt() {
+        return lastSeenAt;
+    }
+
+    public void seen(String firmwareVersion, String ip) {
+        this.lastSeenAt = Instant.now();
+        if (firmwareVersion != null) {
+            this.firmwareVersion = firmwareVersion;
+        }
+        if (ip != null) {
+            this.lastIp = ip;
+        }
+    }
+
+    public String getFirmwareVersion() {
+        return firmwareVersion;
+    }
+
+    public String getLastIp() {
+        return lastIp;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 }

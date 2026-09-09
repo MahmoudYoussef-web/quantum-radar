@@ -25,6 +25,9 @@ quradar:
   rate-limit:
     events-per-minute: ${RATELIMIT_EVENTS_PER_MIN:60}
     auth-per-minute: ${RATELIMIT_AUTH_PER_MIN:10}
+  device:
+    degraded-minutes: 2
+    offline-minutes: 5
   jwt:
     secret: ${JWT_SECRET:dev-secret-key-that-is-at-least-32-bytes-long!}
     access-minutes: 15

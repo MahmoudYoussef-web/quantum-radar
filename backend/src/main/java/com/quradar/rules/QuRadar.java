@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * Rule engine orchestrator. One transaction per observation: validate device,
@@ -72,6 +74,7 @@ public class QuRadar {
             if (!device.isActive()) {
                 throw new InactiveDeviceException(device.getDeviceCode());
             }
+            device.seen(null, currentIp());
         }
 
         List<ViolationRule> rules = ruleConfigs.buildEnabledRules();
@@ -136,5 +139,14 @@ public class QuRadar {
         fine.print();
 
         return fine;
+    }
+
+    private static String currentIp() {
+        try {
+            var attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            return attributes != null ? attributes.getRequest().getRemoteAddr() : null;
+        } catch (Exception ex) {
+            return null;
+        }
     }
 }

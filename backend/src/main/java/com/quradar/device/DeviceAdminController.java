@@ -1,8 +1,11 @@
 package com.quradar.device;
 
 import com.quradar.audit.AuditService;
+import com.quradar.security.SecuritySupport;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,16 +27,23 @@ import org.springframework.web.bind.annotation.RestController;
 public class DeviceAdminController {
 
     private final DeviceRepository repository;
+    private final DeviceHealthService health;
     private final AuditService audit;
+    private final SecuritySupport security;
 
-    public DeviceAdminController(DeviceRepository repository, AuditService audit) {
+    public DeviceAdminController(DeviceRepository repository, DeviceHealthService health,
+                                 AuditService audit, SecuritySupport security) {
         this.repository = repository;
+        this.health = health;
         this.audit = audit;
+        this.security = security;
     }
 
-    public record DeviceResponse(String deviceCode, String name, boolean active) {
-        static DeviceResponse from(DeviceEntity device) {
-            return new DeviceResponse(device.getDeviceCode(), device.getName(), device.isActive());
+    public record DeviceResponse(String deviceCode, String name, boolean active,
+            DeviceHealth health, Instant lastSeenAt) {
+        static DeviceResponse from(DeviceEntity device, DeviceHealthService health) {
+            return new DeviceResponse(device.getDeviceCode(), device.getName(), device.isActive(),
+                    health.healthOf(device), device.getLastSeenAt());
         }
     }
 
@@ -45,7 +55,31 @@ public class DeviceAdminController {
 
     @GetMapping
     public List<DeviceResponse> list() {
-        return repository.findAll().stream().map(DeviceResponse::from).toList();
+        return repository.findAll().stream().map(d -> DeviceResponse.from(d, health)).toList();
+    }
+
+    @GetMapping("/{code}")
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICER')")
+    public DeviceHealthService.DeviceDetail detail(@PathVariable String code) {
+        DeviceEntity device = repository.findByDeviceCode(code)
+                .orElseThrow(() -> new DeviceNotFoundException(code));
+        return health.detail(device);
+    }
+
+    public record HeartbeatRequest(String firmwareVersion) {
+    }
+
+    @PostMapping("/{code}/heartbeat")
+    @Transactional
+    @PreAuthorize("hasAnyRole('DEVICE','ADMIN')")
+    public DeviceResponse heartbeat(@PathVariable String code,
+                                    @RequestBody(required = false) HeartbeatRequest request,
+                                    HttpServletRequest http) {
+        security.requireDeviceOwner(code);
+        DeviceEntity device = repository.findByDeviceCode(code)
+                .orElseThrow(() -> new DeviceNotFoundException(code));
+        device.seen(request != null ? request.firmwareVersion() : null, http.getRemoteAddr());
+        return DeviceResponse.from(device, health);
     }
 
     @PostMapping
@@ -54,7 +88,7 @@ public class DeviceAdminController {
                 new DeviceEntity(request.deviceCode(), request.name(), true));
         audit.record("CREATED_DEVICE", "DEVICE", saved.getDeviceCode(),
                 Map.of("name", saved.getName()));
-        return ResponseEntity.status(HttpStatus.CREATED).body(DeviceResponse.from(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(DeviceResponse.from(saved, health));
     }
 
     @PatchMapping("/{code}")
@@ -68,6 +102,6 @@ public class DeviceAdminController {
             audit.record(request.active() ? "ACTIVATED_DEVICE" : "DEACTIVATED_DEVICE", "DEVICE",
                     code, Map.of("active", Map.of("from", from, "to", request.active())));
         }
-        return DeviceResponse.from(device);
+        return DeviceResponse.from(device, health);
     }
 }
