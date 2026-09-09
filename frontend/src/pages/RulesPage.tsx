@@ -3,9 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { RuleConfig } from '../api/types'
 import { Empty, ErrorBox, Loading } from '../components/Status'
+import { useToast } from '../components/Toast'
 
 export function RulesPage() {
   const client = useQueryClient()
+  const notify = useToast()
   const [editing, setEditing] = useState<string | null>(null)
   const [fee, setFee] = useState('')
 
@@ -14,9 +16,15 @@ export function RulesPage() {
   const update = useMutation({
     mutationFn: ({ code, body }: { code: string; body: object }) =>
       api<RuleConfig>(`/api/v1/rules/${code}`, { method: 'PATCH', body: JSON.stringify(body) }),
-    onSuccess: () => {
+    onSuccess: (rule, variables) => {
       setEditing(null)
       client.invalidateQueries({ queryKey: ['rules'] })
+      const body = variables.body as { enabled?: boolean; fee?: number }
+      if (body.enabled !== undefined) {
+        notify(`Rule ${rule.code} ${rule.enabled ? 'enabled' : 'disabled'}.`)
+      } else if (body.fee !== undefined) {
+        notify(`Fee updated for ${rule.code}: ${rule.fee} EGP.`)
+      }
     },
   })
 

@@ -3,9 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { Device } from '../api/types'
 import { Empty, ErrorBox, Loading } from '../components/Status'
+import { useToast } from '../components/Toast'
 
 export function DevicesPage() {
   const client = useQueryClient()
+  const notify = useToast()
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
 
@@ -18,10 +20,11 @@ export function DevicesPage() {
         method: 'POST',
         body: JSON.stringify({ deviceCode: code.trim(), name: name.trim() }),
       }),
-    onSuccess: () => {
+    onSuccess: (device) => {
       setCode('')
       setName('')
       refresh()
+      notify(`Device ${device.deviceCode} registered.`)
     },
   })
 
@@ -31,7 +34,10 @@ export function DevicesPage() {
         method: 'PATCH',
         body: JSON.stringify({ active: !d.active }),
       }),
-    onSuccess: refresh,
+    onSuccess: (device) => {
+      refresh()
+      notify(`Device ${device.deviceCode} ${device.active ? 'activated' : 'deactivated'}.`)
+    },
   })
 
   return (

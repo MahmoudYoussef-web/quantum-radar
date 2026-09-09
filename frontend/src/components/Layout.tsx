@@ -1,6 +1,7 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { RadarMark } from '../pages/LandingPage'
+import { ToastProvider } from './Toast'
 
 const TITLES: Record<string, { title: string; crumb: string }> = {
   '/overview': { title: 'Overview', crumb: 'console / overview' },
@@ -22,6 +23,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <ToastProvider>
     <div className="app">
       <a className="skip" href="#main">
         Skip to content
@@ -62,5 +64,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <main id="main">{children}</main>
       </div>
     </div>
+    </ToastProvider>
   )
 }
