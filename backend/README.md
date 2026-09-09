@@ -4,6 +4,11 @@ Traffic radar backend: radar devices submit `Observation`s, a DB-configurable ru
 engine evaluates them, and the service persists violations + tiered fines + driver
 penalty points. Single Spring Boot modular monolith — no microservices.
 
+![Landing page](docs/screenshots/landing.png)
+![Shift overview console](docs/screenshots/overview.png)
+![Rule versions](docs/screenshots/rules.png)
+![API reference](docs/screenshots/api.png)
+
 ```bash
 # one-command local run from backend/ (monorepo: UI lives in ../frontend)
 docker compose up --build
