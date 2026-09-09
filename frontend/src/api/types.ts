@@ -25,6 +25,8 @@ export interface ViolationSummary {
   description: string
   fee: number
   points: number
+  deviceCode: string | null
+  recordedAt: string
 }
 
 export interface RuleConfig {

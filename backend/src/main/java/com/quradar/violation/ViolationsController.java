@@ -5,19 +5,23 @@ import com.quradar.driver.DriverRepository;
 import com.quradar.security.Role;
 import com.quradar.security.SecuritySupport;
 import com.quradar.vehicle.VehicleRepository;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Paginated violation queries with the same CITIZEN plate scoping as fines. */
+/** Filtered violation search with the same CITIZEN plate scoping as fines. */
 @RestController
 @RequestMapping("/api/v1/violations")
 @PreAuthorize("hasAnyRole('ADMIN','OFFICER','CITIZEN')")
+@Transactional(readOnly = true)
 public class ViolationsController {
 
     private final ViolationRepository violations;
@@ -34,49 +38,46 @@ public class ViolationsController {
     }
 
     public record ViolationSummary(Long id, Long fineId, String plateNumber, String ruleName,
-            String description, int fee, int points) {
+            String description, int fee, int points, String deviceCode, Instant recordedAt) {
         static ViolationSummary from(ViolationEntity violation) {
+            var observation = violation.getFine().getObservation();
             return new ViolationSummary(violation.getId(), violation.getFine().getId(),
                     violation.getFine().getPlateNumber(), violation.getRuleName(),
-                    violation.getDescription(), violation.getFee(), violation.getPoints());
+                    violation.getDescription(), violation.getFee(), violation.getPoints(),
+                    observation != null && observation.getDevice() != null
+                            ? observation.getDevice().getDeviceCode() : null,
+                    violation.getFine().getCreatedAt());
         }
     }
 
     @GetMapping
     public Page<ViolationSummary> list(@RequestParam(required = false) String rule,
                                        @RequestParam(required = false) String plate,
+                                       @RequestParam(required = false) String device,
+                                       @RequestParam(required = false)
+                                       @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+                                       @RequestParam(required = false)
+                                       @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+                                       @RequestParam(required = false) Integer minFee,
+                                       @RequestParam(required = false) Integer maxFee,
                                        Pageable pageable) {
         var principal = security.current();
-        List<String> plates = null;
         if (principal.role() == Role.CITIZEN) {
             Driver driver = drivers.findByLicenseNo(principal.driverLicenseNo()).orElseThrow();
-            plates = vehicles.findByOwnerId(driver.getId()).stream()
+            List<String> plates = vehicles.findByOwnerId(driver.getId()).stream()
                     .map(v -> v.getPlate()).toList();
             if (plate != null && !plates.contains(plate)) {
                 throw new org.springframework.security.access.AccessDeniedException(
                         "Citizens may only query their own plates");
             }
-            if (plate == null && plates.isEmpty()) {
+            if (plates.isEmpty()) {
                 return Page.empty(pageable);
             }
+            return violations.searchForPlates(plates, rule, device, from, to, minFee, maxFee,
+                    pageable).map(ViolationSummary::from);
         }
-        if (plate != null && rule != null) {
-            return violations.findByPlateAndRule(plate, rule, pageable).map(ViolationSummary::from);
-        }
-        if (plate != null) {
-            return violations.findByPlate(plate, pageable).map(ViolationSummary::from);
-        }
-        if (rule != null) {
-            if (plates != null) {
-                return violations.findByPlatesAndRule(plates, rule, pageable)
-                        .map(ViolationSummary::from);
-            }
-            return violations.findByRuleName(rule, pageable).map(ViolationSummary::from);
-        }
-        if (plates != null) {
-            return violations.findByPlates(plates, pageable).map(ViolationSummary::from);
-        }
-        return violations.findAll(pageable).map(ViolationSummary::from);
+        return violations.search(rule, plate, device, from, to, minFee, maxFee, pageable)
+                .map(ViolationSummary::from);
     }
 
     public record DayCount(String date, long count) {

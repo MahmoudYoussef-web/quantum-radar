@@ -31,4 +31,27 @@ public interface ViolationRepository extends JpaRepository<ViolationEntity, Long
 
     @Query("SELECT v FROM ViolationEntity v WHERE v.fine.plateNumber IN :plates AND v.ruleName = :rule")
     Page<ViolationEntity> findByPlatesAndRule(List<String> plates, String rule, Pageable pageable);
+
+    @Query("SELECT v FROM ViolationEntity v "
+            + "WHERE (:rule IS NULL OR v.ruleName = :rule) "
+            + "AND (:plate IS NULL OR v.fine.plateNumber = :plate) "
+            + "AND (:device IS NULL OR v.fine.observation.device.deviceCode = :device) "
+            + "AND v.fine.createdAt >= COALESCE(:from, v.fine.createdAt) "
+            + "AND v.fine.createdAt <= COALESCE(:to, v.fine.createdAt) "
+            + "AND (:minFee IS NULL OR v.fee >= :minFee) "
+            + "AND (:maxFee IS NULL OR v.fee <= :maxFee)")
+    Page<ViolationEntity> search(String rule, String plate, String device,
+                                 java.time.Instant from, java.time.Instant to,
+                                 Integer minFee, Integer maxFee, Pageable pageable);
+
+    @Query("SELECT v FROM ViolationEntity v WHERE v.fine.plateNumber IN :plates "
+            + "AND (:rule IS NULL OR v.ruleName = :rule) "
+            + "AND (:device IS NULL OR v.fine.observation.device.deviceCode = :device) "
+            + "AND v.fine.createdAt >= COALESCE(:from, v.fine.createdAt) "
+            + "AND v.fine.createdAt <= COALESCE(:to, v.fine.createdAt) "
+            + "AND (:minFee IS NULL OR v.fee >= :minFee) "
+            + "AND (:maxFee IS NULL OR v.fee <= :maxFee)")
+    Page<ViolationEntity> searchForPlates(List<String> plates, String rule, String device,
+                                         java.time.Instant from, java.time.Instant to,
+                                         Integer minFee, Integer maxFee, Pageable pageable);
 }
