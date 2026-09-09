@@ -78,4 +78,29 @@ public class ViolationsController {
         }
         return violations.findAll(pageable).map(ViolationSummary::from);
     }
+
+    public record DayCount(String date, long count) {
+    }
+
+    public record RuleCount(String rule, long count) {
+    }
+
+    @GetMapping("/stats/daily")
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICER')")
+    public java.util.List<DayCount> daily(@RequestParam(defaultValue = "14") int days) {
+        int window = Math.min(Math.max(days, 1), 90);
+        java.time.Instant since = java.time.Instant.now()
+                .minus(window - 1, java.time.temporal.ChronoUnit.DAYS);
+        return violations.countByDay(since).stream()
+                .map(row -> new DayCount(row[0].toString(), (Long) row[1]))
+                .toList();
+    }
+
+    @GetMapping("/stats/by-rule")
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICER')")
+    public java.util.List<RuleCount> byRule() {
+        return violations.countByRule().stream()
+                .map(row -> new RuleCount((String) row[0], (Long) row[1]))
+                .toList();
+    }
 }

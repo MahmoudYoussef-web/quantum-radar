@@ -923,7 +923,7 @@ table.grid th.num {
 
 .app main {
   padding: 1.75rem;
-  max-width: 1180px;
+  max-width: 1240px;
   width: 100%;
   margin: 0 auto;
 }
@@ -1090,6 +1090,78 @@ table.grid th.num {
 .panel-title {
   font-size: 1rem;
   margin-bottom: 0.75rem;
+}
+
+.chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  font-family: var(--font-mono);
+}
+
+.chart .gridline {
+  stroke: var(--line-d);
+  stroke-width: 1;
+}
+
+.chart .tick {
+  fill: var(--muted-d);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.chart .line {
+  stroke: var(--accent-d);
+  stroke-width: 2;
+}
+
+.chart .area {
+  fill: var(--accent-d);
+  opacity: 0.12;
+}
+
+.chart .dot {
+  fill: var(--accent-d);
+}
+
+.chart figcaption {
+  font-size: 0.82rem;
+  margin-top: 0.5rem;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 200px) 1fr 44px;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 0.55rem 0;
+}
+
+.bar-label {
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-track {
+  display: block;
+  height: 10px;
+  background: #100d08;
+  border: 1px solid var(--line-d);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent-d);
+}
+
+.bar-count {
+  font-size: 0.85rem;
+  text-align: right;
 }
 
 @media (prefers-reduced-motion: reduce) {

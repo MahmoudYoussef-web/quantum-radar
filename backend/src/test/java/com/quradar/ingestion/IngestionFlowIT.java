@@ -76,6 +76,31 @@ class IngestionFlowIT {
                 "seatbeltFastened", true));
     }
 
+    private HttpEntity<Void> authorizedGet() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", adminToken);
+        return new HttpEntity<>(null, headers);
+    }
+
+    @Test
+    void statsReflectIngestedViolations() {
+        String eventId = UUID.randomUUID().toString();
+        ResponseEntity<Map> first = rest.exchange("/api/v1/events", HttpMethod.POST,
+                authorized(event(eventId)), Map.class);
+        assertEquals(HttpStatus.CREATED, first.getStatusCode());
+
+        ResponseEntity<java.util.List> daily = rest.exchange(
+                "/api/v1/violations/stats/daily?days=7", HttpMethod.GET, authorizedGet(),
+                java.util.List.class);
+        assertEquals(HttpStatus.OK, daily.getStatusCode());
+        org.junit.jupiter.api.Assertions.assertFalse(daily.getBody().isEmpty());
+
+        ResponseEntity<java.util.List> byRule = rest.exchange("/api/v1/violations/stats/by-rule",
+                HttpMethod.GET, authorizedGet(), java.util.List.class);
+        assertEquals(HttpStatus.OK, byRule.getStatusCode());
+        org.junit.jupiter.api.Assertions.assertFalse(byRule.getBody().isEmpty());
+    }
+
     @Test
     void duplicateEventIdIsRejectedWithoutDoubleFine() {
         String eventId = UUID.randomUUID().toString();

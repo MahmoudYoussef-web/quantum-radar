@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import type { Device, Page, RuleConfig, ViolationSummary } from '../api/types'
 import { Empty, ErrorBox, Loading } from '../components/Status'
+import { RuleBars, TrendChart } from '../components/Charts'
 
 export function OverviewPage() {
   const fines = useQuery({
@@ -21,15 +22,19 @@ export function OverviewPage() {
     queryKey: ['devices'],
     queryFn: () => api<Device[]>('/api/v1/devices'),
   })
+  const daily = useQuery({
+    queryKey: ['stats-daily'],
+    queryFn: () => api<{ date: string; count: number }[]>('/api/v1/violations/stats/daily?days=14'),
+  })
+  const byRule = useQuery({
+    queryKey: ['stats-by-rule'],
+    queryFn: () => api<{ rule: string; count: number }[]>('/api/v1/violations/stats/by-rule'),
+  })
 
-  const pending = fines.isPending || violations.isPending || rules.isPending || devices.isPending
-  const failed = [fines, violations, rules, devices].find((q) => q.isError)
-  const refetchAll = () => {
-    fines.refetch()
-    violations.refetch()
-    rules.refetch()
-    devices.refetch()
-  }
+  const all = [fines, violations, rules, devices, daily, byRule]
+  const pending = all.some((q) => q.isPending)
+  const failed = all.find((q) => q.isError)
+  const refetchAll = () => all.forEach((q) => q.refetch())
 
   const enabledRules = rules.data?.filter((r) => r.enabled).length ?? 0
   const activeDevices = devices.data?.filter((d) => d.active).length ?? 0
@@ -76,53 +81,48 @@ export function OverviewPage() {
           </ul>
 
           <div className="split-2">
-            <section className="card" aria-label="Latest violations">
-              <h2 className="panel-title">Latest violations</h2>
-              {(violations.data?.content.length ?? 0) === 0 && <Empty what="violations" />}
-              {(violations.data?.content.length ?? 0) > 0 && (
-                <div className="table-scroll" style={{ boxShadow: 'none' }}>
-                  <table className="grid">
-                    <thead>
-                      <tr>
-                        <th>Plate</th>
-                        <th>Rule</th>
-                        <th className="num">Fee</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {violations.data?.content.map((v) => (
-                        <tr key={v.id}>
-                          <td className="mono">{v.plateNumber}</td>
-                          <td className="mono">{v.ruleName}</td>
-                          <td className="num">{v.fee}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              <p style={{ marginBottom: 0 }}>
-                <Link to="/violations">Open the full table →</Link>
-              </p>
+            <section className="card" aria-label="Violations over time">
+              <h2 className="panel-title">Violations over time</h2>
+              <TrendChart points={daily.data ?? []} days={14} />
             </section>
-
-            <section className="card" aria-label="Rule status">
-              <h2 className="panel-title">Rule status</h2>
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0, lineHeight: 2.2 }}>
-                {rules.data?.map((r) => (
-                  <li key={r.code}>
-                    <span className={r.enabled ? 'pill pill-on' : 'pill pill-off'}>
-                      {r.enabled ? 'ON' : 'OFF'}
-                    </span>{' '}
-                    <span className="mono" style={{ fontSize: '0.85rem' }}>{r.code}</span>
-                  </li>
-                ))}
-              </ul>
+            <section className="card" aria-label="Violations by rule">
+              <h2 className="panel-title">Violations by rule</h2>
+              <RuleBars rows={byRule.data ?? []} />
               <p style={{ marginBottom: 0 }}>
                 <Link to="/rules">Manage rules →</Link>
               </p>
             </section>
           </div>
+
+          <section className="card" aria-label="Latest violations" style={{ marginTop: '1rem' }}>
+            <h2 className="panel-title">Latest violations</h2>
+            {(violations.data?.content.length ?? 0) === 0 && <Empty what="violations" />}
+            {(violations.data?.content.length ?? 0) > 0 && (
+              <div className="table-scroll" style={{ boxShadow: 'none' }}>
+                <table className="grid">
+                  <thead>
+                    <tr>
+                      <th>Plate</th>
+                      <th>Rule</th>
+                      <th className="num">Fee</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {violations.data?.content.map((v) => (
+                      <tr key={v.id}>
+                        <td className="mono">{v.plateNumber}</td>
+                        <td className="mono">{v.ruleName}</td>
+                        <td className="num">{v.fee}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p style={{ marginBottom: 0 }}>
+              <Link to="/violations">Open the full table →</Link>
+            </p>
+          </section>
         </>
       )}
     </div>
