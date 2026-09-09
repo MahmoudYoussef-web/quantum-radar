@@ -1,10 +1,12 @@
 # QuRadar Admin
 
-Small admin UI for the [Quantum Radar](../backend) backend — violations table
-(filter/sort/paginate), rule management (enable, edit fees), device list, and
-driver/vehicle lookup with violation history. Loading, empty, and error states
-throughout. No maps, no real-time push, no charts — those are documented v3 ideas
-in the backend README, not half-built features here.
+Small admin UI for the [Quantum Radar](../backend) backend — public landing page,
+shift overview (KPIs, hand-rolled SVG trend + distribution charts), violations
+table (filters, pagination, timestamps, device source), rule management (enable,
+fees, version history, live tiers), device registry with health and details,
+driver lookup with enforcement summaries, and an audit log. Loading, empty, and
+error states plus mutation toasts throughout. No maps, no real-time push — those
+stay documented v3 ideas in the backend README.
 
 ## Run
 
