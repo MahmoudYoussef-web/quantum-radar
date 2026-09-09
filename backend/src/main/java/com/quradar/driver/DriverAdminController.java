@@ -10,6 +10,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -62,6 +64,12 @@ public class DriverAdminController {
         audit.record("CREATED_DRIVER", "DRIVER", driver.getLicenseNo(),
                 java.util.Map.of("name", driver.getName()));
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(driver));
+    }
+    @GetMapping
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICER')")
+    public Page<DriverResponse> list(Pageable pageable) {
+        return drivers.findAll(pageable).map(this::toResponse);
     }
 
     @GetMapping("/{licenseNo}")

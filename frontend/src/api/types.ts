@@ -85,8 +85,7 @@ export interface Driver {
   licenseStatus: string | null
 }
 
-export interface DriverSummary {
-  driver: Driver
+export interface DriverSummary {  driver: Driver
   vehicles: { plate: string; carType: string }[]
   totalViolations: number
   totalFines: number
