@@ -2,9 +2,12 @@ package com.quradar.rules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
@@ -18,6 +21,9 @@ class RuleConfigServiceTest {
 
     @Mock
     private RuleConfigRepository repository;
+
+    @Mock
+    private RuleVersionRepository versions;
 
     @InjectMocks
     private RuleConfigService service;
@@ -47,13 +53,21 @@ class RuleConfigServiceTest {
 
     @Test
     void buildsOnlyValidEnabledRules() throws Exception {
-        when(repository.findAll()).thenReturn(List.of(
+        List<RuleConfig> configs = List.of(
                 config("SEATBELT", true, 100, null, null, null, null, null, 1),
                 config("SPEED_LIMIT_PRIVATE", true, 300, 80, null, null, null, null, 2),
                 config("SPEED_LIMIT_TRUCK", true, 300, null, null, null, null, null, 2),
                 config("RESTRICTED_ZONE", true, 500, null, null, null, null, null, 2),
                 config("RED_LIGHT", false, 500, null, null, null, null, null, 3),
-                config("MYSTERY_RULE", true, 10, null, null, null, null, null, 0)));
+                config("MYSTERY_RULE", true, 10, null, null, null, null, null, 0));
+        when(repository.findAll()).thenReturn(configs);
+        when(versions.findTopByRuleCodeAndEffectiveFromLessThanEqualOrderByVersionDesc(
+                org.mockito.ArgumentMatchers.anyString(), any(Instant.class)))
+                .thenAnswer(invocation -> {
+                    String code = invocation.getArgument(0);
+                    return configs.stream().filter(c -> c.getCode().equals(code)).findFirst()
+                            .map(c -> new RuleVersion(code, 1, c, Instant.now()));
+                });
 
         List<String> codes = service.buildEnabledRules().stream()
                 .map(ViolationRule::getRuleCode)

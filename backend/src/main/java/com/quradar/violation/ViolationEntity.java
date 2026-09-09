@@ -34,15 +34,20 @@ public class ViolationEntity {
     @Column(nullable = false)
     private int points;
 
+    @Column(name = "rule_version")
+    private Integer ruleVersion;
+
     protected ViolationEntity() {
     }
 
-    public ViolationEntity(FineEntity fine, String ruleName, String description, int fee, int points) {
+    public ViolationEntity(FineEntity fine, String ruleName, String description, int fee,
+                           int points, Integer ruleVersion) {
         this.fine = fine;
         this.ruleName = ruleName;
         this.description = description;
         this.fee = fee;
         this.points = points;
+        this.ruleVersion = ruleVersion;
     }
 
     public Long getId() {
@@ -67,5 +72,9 @@ public class ViolationEntity {
 
     public int getPoints() {
         return points;
+    }
+
+    public Integer getRuleVersion() {
+        return ruleVersion;
     }
 }

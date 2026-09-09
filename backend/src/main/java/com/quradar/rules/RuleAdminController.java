@@ -36,10 +36,14 @@ public class RuleAdminController {
         return RuleConfigResponse.from(service.getRequired(code));
     }
 
+    @GetMapping("/{code}/versions")
+    public List<RuleVersionResponse> versions(@PathVariable String code) {
+        return service.listVersions(code).stream().map(RuleVersionResponse::from).toList();
+    }
+
     @PatchMapping("/{code}")
     public RuleConfigResponse update(@PathVariable String code,
-                                     @Valid @RequestBody RuleConfigUpdateRequest request) {
-        RuleConfig before = service.getRequired(code);
+                                     @Valid @RequestBody RuleConfigUpdateRequest request) {        RuleConfig before = service.getRequired(code);
         RuleConfigResponse updated = RuleConfigResponse.from(service.update(code, request));
         audit.record("UPDATED_RULE", "RULE", code, diff(before, updated));
         return updated;

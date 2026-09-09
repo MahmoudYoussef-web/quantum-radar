@@ -54,8 +54,9 @@ public class FineEntity {
         this.createdAt = Instant.now();
     }
 
-    public void addViolation(String ruleName, String description, int fee, int points) {
-        violations.add(new ViolationEntity(this, ruleName, description, fee, points));
+    public void addViolation(String ruleName, String description, int fee, int points,
+                             Integer ruleVersion) {
+        violations.add(new ViolationEntity(this, ruleName, description, fee, points, ruleVersion));
     }
 
     public Long getId() {

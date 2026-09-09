@@ -6,12 +6,14 @@ public class Violation {
     private String description;
     private int fee;
     private int points;
+    private int ruleVersion;
 
     public Violation(String ruleName, String description, int fee) {
         this.ruleName = ruleName;
         this.description = description;
         this.fee = fee;
         this.points = 0;
+        this.ruleVersion = 0;
     }
 
     public String getRuleName() {
@@ -36,5 +38,13 @@ public class Violation {
 
     public void setPoints(int points) {
         this.points = points;
+    }
+
+    public int getRuleVersion() {
+        return ruleVersion;
+    }
+
+    public void setRuleVersion(int ruleVersion) {
+        this.ruleVersion = ruleVersion;
     }
 }

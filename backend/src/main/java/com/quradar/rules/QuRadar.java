@@ -82,6 +82,7 @@ public class QuRadar {
                 if (violation != null) {
                     violation.setFee(fineCalculation.feeFor(rule, observation, violation.getFee()));
                     violation.setPoints(ruleConfigs.pointsFor(rule.getRuleCode()));
+                    violation.setRuleVersion(ruleConfigs.versionFor(rule.getRuleCode()));
                     violations.add(violation);
                 }
             }
@@ -108,7 +109,7 @@ public class QuRadar {
         FineEntity fineEntity = new FineEntity(observation.getPlateNumber(), total, observationEntity);
         for (Violation violation : violations) {
             fineEntity.addViolation(violation.getRuleName(), violation.getDescription(),
-                    violation.getFee(), violation.getPoints());
+                    violation.getFee(), violation.getPoints(), violation.getRuleVersion());
         }
         fines.save(fineEntity);
 

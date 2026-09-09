@@ -38,7 +38,8 @@ public class ViolationsController {
     }
 
     public record ViolationSummary(Long id, Long fineId, String plateNumber, String ruleName,
-            String description, int fee, int points, String deviceCode, Instant recordedAt) {
+            String description, int fee, int points, String deviceCode, Instant recordedAt,
+            Integer ruleVersion) {
         static ViolationSummary from(ViolationEntity violation) {
             var observation = violation.getFine().getObservation();
             return new ViolationSummary(violation.getId(), violation.getFine().getId(),
@@ -46,7 +47,7 @@ public class ViolationsController {
                     violation.getDescription(), violation.getFee(), violation.getPoints(),
                     observation != null && observation.getDevice() != null
                             ? observation.getDevice().getDeviceCode() : null,
-                    violation.getFine().getCreatedAt());
+                    violation.getFine().getCreatedAt(), violation.getRuleVersion());
         }
     }
 
