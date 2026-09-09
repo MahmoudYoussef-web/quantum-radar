@@ -91,8 +91,7 @@ public class ViolationsController {
     @PreAuthorize("hasAnyRole('ADMIN','OFFICER')")
     public java.util.List<DayCount> daily(@RequestParam(defaultValue = "14") int days) {
         int window = Math.min(Math.max(days, 1), 90);
-        java.time.Instant since = java.time.Instant.now()
-                .minus(window - 1, java.time.temporal.ChronoUnit.DAYS);
+        java.time.LocalDate since = java.time.LocalDate.now().minusDays(window - 1);
         return violations.countByDay(since).stream()
                 .map(row -> new DayCount(row[0].toString(), (Long) row[1]))
                 .toList();

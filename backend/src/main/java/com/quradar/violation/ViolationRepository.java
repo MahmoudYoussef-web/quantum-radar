@@ -12,11 +12,11 @@ public interface ViolationRepository extends JpaRepository<ViolationEntity, Long
     @Query("SELECT v.ruleName, COUNT(v) FROM ViolationEntity v GROUP BY v.ruleName")
     List<Object[]> countByRule();
 
-    @Query("SELECT CAST(v.fine.createdAt AS LocalDate), COUNT(v) FROM ViolationEntity v "
-            + "WHERE v.fine.createdAt >= :since "
-            + "GROUP BY CAST(v.fine.createdAt AS LocalDate) "
-            + "ORDER BY CAST(v.fine.createdAt AS LocalDate)")
-    List<Object[]> countByDay(java.time.Instant since);
+    @Query("SELECT v.fine.observation.observedAt, COUNT(v) FROM ViolationEntity v "
+            + "WHERE v.fine.observation.observedAt >= :since "
+            + "GROUP BY v.fine.observation.observedAt "
+            + "ORDER BY v.fine.observation.observedAt")
+    List<Object[]> countByDay(java.time.LocalDate since);
 
     Page<ViolationEntity> findByRuleName(String ruleName, Pageable pageable);
 
