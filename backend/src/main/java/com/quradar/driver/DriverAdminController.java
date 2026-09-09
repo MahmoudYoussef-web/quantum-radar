@@ -1,6 +1,9 @@
 package com.quradar.driver;
 
+import com.quradar.fine.FineRepository;
 import com.quradar.security.SecuritySupport;
+import com.quradar.vehicle.Vehicle;
+import com.quradar.vehicle.VehicleRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,12 +27,17 @@ public class DriverAdminController {
 
     private final DriverRepository drivers;
     private final LicenseRepository licenses;
+    private final VehicleRepository vehicles;
+    private final FineRepository fines;
     private final SecuritySupport security;
 
     public DriverAdminController(DriverRepository drivers, LicenseRepository licenses,
+                                 VehicleRepository vehicles, FineRepository fines,
                                  SecuritySupport security) {
         this.drivers = drivers;
         this.licenses = licenses;
+        this.vehicles = vehicles;
+        this.fines = fines;
         this.security = security;
     }
 
@@ -66,5 +74,35 @@ public class DriverAdminController {
                 .map(License::getStatus).orElse(null);
         return new DriverResponse(driver.getName(), driver.getLicenseNo(),
                 driver.getPenaltyPoints(), driver.getVersion(), status);
+    }
+
+    public record VehicleEntry(String plate, String carType) {
+    }
+
+    public record EnforcementSummary(DriverResponse driver, List<VehicleEntry> vehicles,
+            long totalViolations, long totalFines, int totalFineAmount) {
+    }
+
+    @GetMapping("/{licenseNo}/summary")
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICER','CITIZEN')")
+    public EnforcementSummary summary(@PathVariable String licenseNo) {
+        security.requireDriverOwner(licenseNo);
+        Driver driver = drivers.findByLicenseNo(licenseNo)
+                .orElseThrow(() -> new DriverNotFoundException(licenseNo));
+        List<Vehicle> owned = vehicles.findByOwnerId(driver.getId());
+        long violationCount = 0;
+        long fineCount = 0;
+        int fineAmount = 0;
+        for (Vehicle vehicle : owned) {
+            var history = fines.findByPlateNumberOrderByCreatedAtDesc(vehicle.getPlate());
+            fineCount += history.size();
+            fineAmount += history.stream().mapToInt(f -> f.getTotalAmount()).sum();
+            violationCount += history.stream().mapToInt(f -> f.getViolations().size()).sum();
+        }
+        List<VehicleEntry> entries = owned.stream()
+                .map(v -> new VehicleEntry(v.getPlate(), v.getCarType().name())).toList();
+        return new EnforcementSummary(toResponse(driver), entries, violationCount, fineCount,
+                fineAmount);
     }
 }

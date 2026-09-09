@@ -958,6 +958,10 @@ table.grid th.num {
   background: #221d13;
 }
 
+table.grid tbody tr.selected td {
+  background: #2a2113;
+}
+
 .app .field input,
 .app .filters input {
   background: #100d08;

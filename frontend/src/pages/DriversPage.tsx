@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
-import type { Driver, VehicleHistory } from '../api/types'
+import type { DriverSummary, VehicleHistory } from '../api/types'
 import { Empty, ErrorBox, Loading } from '../components/Status'
 
 export function DriversPage() {
   const [license, setLicense] = useState('')
   const [wanted, setWanted] = useState<string | null>(null)
 
-  const driverQuery = useQuery({
-    queryKey: ['driver', wanted],
-    queryFn: () => api<Driver>(`/api/v1/drivers/${wanted}`),
+  const summaryQuery = useQuery({
+    queryKey: ['driver-summary', wanted],
+    queryFn: () => api<DriverSummary>(`/api/v1/drivers/${wanted}/summary`),
     enabled: wanted !== null,
     retry: false,
   })
@@ -19,7 +19,7 @@ export function DriversPage() {
     <div>
       <div className="page-head">
         <h1>Drivers &amp; vehicles</h1>
-        <p>Look up a driver by license number, then pull any plate&apos;s fine history.</p>
+        <p>Look up a driver for identity, vehicles and enforcement totals — then drill into any plate.</p>
       </div>
       <form
         className="filters"
@@ -44,53 +44,101 @@ export function DriversPage() {
         </button>
       </form>
       {wanted === null && <p className="muted">Enter a license number to look up a driver.</p>}
-      {driverQuery.isPending && wanted !== null && <Loading what="driver" />}
-      {driverQuery.isError && <ErrorBox message={(driverQuery.error as Error).message} onRetry={() => driverQuery.refetch()} />}
-      {driverQuery.data && <DriverDetail licenseNo={driverQuery.data.licenseNo} driver={driverQuery.data} />}
+      {summaryQuery.isPending && wanted !== null && <Loading what="driver" />}
+      {summaryQuery.isError && <ErrorBox message={(summaryQuery.error as Error).message} onRetry={() => summaryQuery.refetch()} />}
+      {summaryQuery.data && <DriverCard summary={summaryQuery.data} />}
     </div>
   )
 }
 
-function DriverDetail({ licenseNo, driver }: { licenseNo: string; driver: Driver }) {
-  const [plate, setPlate] = useState('')
-  const [wantedPlate, setWantedPlate] = useState<string | null>(null)
+function DriverCard({ summary }: { summary: DriverSummary }) {
+  const { driver } = summary
+  const [plate, setPlate] = useState<string | null>(null)
 
+  return (
+    <div>
+      <section className="card" aria-label={`Driver ${driver.name}`}>
+        <h2 className="panel-title">Driver</h2>
+        <p style={{ fontSize: '1.25rem', margin: '0 0 0.25rem' }}>
+          <strong>{driver.name}</strong>{' '}
+          <span className="mono muted">{driver.licenseNo}</span>
+        </p>
+        <p>
+          <span className={driver.licenseStatus === 'ACTIVE' ? 'pill pill-on' : 'pill pill-bad'}>
+            {driver.licenseStatus ?? 'NO LICENSE'}
+          </span>{' '}
+          <span className="mono">{driver.penaltyPoints} pts</span>{' '}
+          <span className="muted">record v{driver.version}</span>
+        </p>
+        <div className="kpis" style={{ margin: '1rem 0 0' }}>
+          <div className="kpi">
+            <span>Total violations</span>
+            <b>{summary.totalViolations}</b>
+          </div>
+          <div className="kpi">
+            <span>Distinct fines</span>
+            <b>{summary.totalFines}</b>
+          </div>
+          <div className="kpi">
+            <span>Total fined</span>
+            <b>{summary.totalFineAmount.toLocaleString('en-EG')}</b>
+            <small>EGP</small>
+          </div>
+        </div>
+      </section>
+
+      <section className="card" aria-label="Vehicles" style={{ marginTop: '1rem' }}>
+        <h2 className="panel-title">Vehicles ({summary.vehicles.length})</h2>
+        {summary.vehicles.length === 0 && <Empty what="vehicles for this driver" />}
+        {summary.vehicles.length > 0 && (
+          <div className="table-scroll" style={{ boxShadow: 'none' }}>
+            <table className="grid">
+              <thead>
+                <tr>
+                  <th>Plate</th>
+                  <th>Type</th>
+                  <th>History</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.vehicles.map((v) => (
+                  <tr key={v.plate} className={plate === v.plate ? 'selected' : undefined}>
+                    <td className="mono">{v.plate}</td>
+                    <td>{v.carType}</td>
+                    <td>
+                      <button className="btn-ghost btn btn-sm" onClick={() => setPlate(v.plate)}>
+                        View history
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {plate && <VehicleHistoryPanel plate={plate} onClose={() => setPlate(null)} />}
+    </div>
+  )
+}
+
+function VehicleHistoryPanel({ plate, onClose }: { plate: string; onClose: () => void }) {
   const historyQuery = useQuery({
-    queryKey: ['vehicle', wantedPlate],
-    queryFn: () => api<VehicleHistory>(`/api/v1/vehicles/${wantedPlate}`),
-    enabled: wantedPlate !== null,
+    queryKey: ['vehicle', plate],
+    queryFn: () => api<VehicleHistory>(`/api/v1/vehicles/${plate}`),
     retry: false,
   })
 
   return (
-    <section className="card" aria-label={`Driver ${driver.name}`}>
+    <section className="card" aria-label={`History for ${plate}`} style={{ marginTop: '1rem' }}>
       <h2 className="panel-title">
-        {driver.name} <span className="mono muted">{licenseNo}</span>
-      </h2>
-      <p>
-        <span className={driver.licenseStatus === 'ACTIVE' ? 'pill pill-on' : 'pill pill-bad'}>
-          {driver.licenseStatus ?? 'NO LICENSE'}
-        </span>{' '}
-        <span className="mono">{driver.penaltyPoints} pts</span>{' '}
-        <span className="muted">record v{driver.version}</span>
-      </p>
-      <form
-        className="filters"
-        aria-label="Vehicle history"
-        onSubmit={(e) => {
-          e.preventDefault()
-          setWantedPlate(plate.trim() || null)
-        }}
-      >
-        <div className="field">
-          <label htmlFor="vh-plate">Plate</label>
-          <input id="vh-plate" placeholder="ABC1234" value={plate} onChange={(e) => setPlate(e.target.value)} autoComplete="off" />
-        </div>
-        <button className="btn" type="submit">
-          Vehicle history
+        History · <span className="mono">{plate}</span>{' '}
+        <button className="btn-ghost btn btn-sm" onClick={onClose}>
+          Close
         </button>
-      </form>
-      {historyQuery.isPending && wantedPlate !== null && <Loading what="vehicle history" />}
+      </h2>
+      {historyQuery.isPending && <Loading what="vehicle history" />}
       {historyQuery.isError && (
         <ErrorBox message={(historyQuery.error as Error).message} onRetry={() => historyQuery.refetch()} />
       )}
