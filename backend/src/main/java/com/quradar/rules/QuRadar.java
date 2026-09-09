@@ -1,5 +1,6 @@
 package com.quradar.rules;
 
+import com.quradar.common.RadarMetrics;
 import com.quradar.device.DeviceEntity;
 import com.quradar.device.DeviceNotFoundException;
 import com.quradar.device.DeviceRepository;
@@ -42,6 +43,7 @@ public class QuRadar {
     private final RuleConfigService ruleConfigs;
     private final FineCalculationService fineCalculation;
     private final IdempotencyCache idempotencyCache;
+    private final RadarMetrics metrics;
     private final DeviceRepository devices;
     private final VehicleRepository vehicles;
     private final DriverRepository drivers;
@@ -49,12 +51,14 @@ public class QuRadar {
     private final FineRepository fines;
 
     public QuRadar(RuleConfigService ruleConfigs, FineCalculationService fineCalculation,
-                   IdempotencyCache idempotencyCache, DeviceRepository devices,
-                   VehicleRepository vehicles, DriverRepository drivers,
-                   ObservationRepository observations, FineRepository fines) {
+                   IdempotencyCache idempotencyCache, RadarMetrics metrics,
+                   DeviceRepository devices, VehicleRepository vehicles,
+                   DriverRepository drivers, ObservationRepository observations,
+                   FineRepository fines) {
         this.ruleConfigs = ruleConfigs;
         this.fineCalculation = fineCalculation;
         this.idempotencyCache = idempotencyCache;
+        this.metrics = metrics;
         this.devices = devices;
         this.vehicles = vehicles;
         this.drivers = drivers;
@@ -66,31 +70,26 @@ public class QuRadar {
     public Fine processObservation(Observation observation) {
         if (observation.getEventId() != null
                 && idempotencyCache.seen(observation.getEventId(), observation.getDeviceCode())) {
+            metrics.duplicate();
             throw new DuplicateEventException(observation.getEventId());
         }
         DeviceEntity device = null;
         if (observation.getDeviceCode() != null) {
-            device = devices.findByDeviceCode(observation.getDeviceCode())
-                    .orElseThrow(() -> new DeviceNotFoundException(observation.getDeviceCode()));
-            if (!device.isActive()) {
-                throw new InactiveDeviceException(device.getDeviceCode());
+            try {
+                device = devices.findByDeviceCode(observation.getDeviceCode())
+                        .orElseThrow(() -> new DeviceNotFoundException(observation.getDeviceCode()));
+                if (!device.isActive()) {
+                    throw new InactiveDeviceException(device.getDeviceCode());
+                }
+            } catch (DeviceNotFoundException | InactiveDeviceException ex) {
+                metrics.badDevice();
+                throw ex;
             }
             device.seen(null, currentIp());
         }
+        metrics.received();
 
-        List<ViolationRule> rules = ruleConfigs.buildEnabledRules();
-        List<Violation> violations = new ArrayList<>();
-        for (ViolationRule rule : rules) {
-            if (rule.matches(observation)) {
-                Violation violation = rule.evaluate(observation);
-                if (violation != null) {
-                    violation.setFee(fineCalculation.feeFor(rule, observation, violation.getFee()));
-                    violation.setPoints(ruleConfigs.pointsFor(rule.getRuleCode()));
-                    violation.setRuleVersion(ruleConfigs.versionFor(rule.getRuleCode()));
-                    violations.add(violation);
-                }
-            }
-        }
+        List<Violation> violations = metrics.timed(() -> evaluate(observation));
 
         if (violations.isEmpty()) {
             return null;
@@ -116,6 +115,7 @@ public class QuRadar {
                     violation.getFee(), violation.getPoints(), violation.getRuleVersion());
         }
         fines.save(fineEntity);
+        metrics.created(violations.size());
 
         if (observation.getEventId() != null) {
             String eventId = observation.getEventId();
@@ -141,6 +141,23 @@ public class QuRadar {
         fine.print();
 
         return fine;
+    }
+
+    private List<Violation> evaluate(Observation observation) {
+        List<ViolationRule> rules = ruleConfigs.buildEnabledRules();
+        List<Violation> violations = new ArrayList<>();
+        for (ViolationRule rule : rules) {
+            if (rule.matches(observation)) {
+                Violation violation = rule.evaluate(observation);
+                if (violation != null) {
+                    violation.setFee(fineCalculation.feeFor(rule, observation, violation.getFee()));
+                    violation.setPoints(ruleConfigs.pointsFor(rule.getRuleCode()));
+                    violation.setRuleVersion(ruleConfigs.versionFor(rule.getRuleCode()));
+                    violations.add(violation);
+                }
+            }
+        }
+        return violations;
     }
 
     private static String currentIp() {
