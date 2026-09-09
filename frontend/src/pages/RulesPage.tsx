@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { FineTier, RuleConfig, RuleVersion } from '../api/types'
 import { Empty, ErrorBox, Loading } from '../components/Status'
+import { Confirm } from '../components/Confirm'
 import { useToast } from '../components/Toast'
 
 export function RulesPage() {
@@ -10,6 +11,7 @@ export function RulesPage() {
   const notify = useToast()
   const [editing, setEditing] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [disabling, setDisabling] = useState<string | null>(null)
   const [fee, setFee] = useState('')
 
   const query = useQuery({ queryKey: ['rules'], queryFn: () => api<RuleConfig[]>('/api/v1/rules') })
@@ -102,7 +104,13 @@ export function RulesPage() {
                       </button>
                       <button
                         className="btn-ghost btn btn-sm"
-                        onClick={() => update.mutate({ code: r.code, body: { enabled: !r.enabled } })}
+                        onClick={() => {
+                          if (r.enabled) {
+                            setDisabling(r.code)
+                          } else {
+                            update.mutate({ code: r.code, body: { enabled: true } })
+                          }
+                        }}
                       >
                         {r.enabled ? 'Disable' : 'Enable'}
                       </button>
@@ -141,6 +149,15 @@ export function RulesPage() {
         </div>
       )}
       {update.isError && <p className="error-text">{(update.error as Error).message}</p>}
+      {disabling && (
+        <Confirm
+          title={`Disable ${disabling}?`}
+          body="The rule stops matching immediately. Existing fines keep their pinned version and are unaffected."
+          confirmLabel="Disable rule"
+          onClose={() => setDisabling(null)}
+          onConfirm={() => update.mutate({ code: disabling, body: { enabled: false } })}
+        />
+      )}
     </div>
   )
 }

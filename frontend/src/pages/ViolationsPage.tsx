@@ -97,14 +97,19 @@ export function ViolationsPage() {
           <label htmlFor="f-to">To</label>
           <input id="f-to" type="date" value={draft.to} onChange={set('to')} />
         </div>
-        <div className="field">
-          <label htmlFor="f-min">Min fee</label>
-          <input id="f-min" inputMode="numeric" placeholder="0" value={draft.minFee} onChange={set('minFee')} />
-        </div>
-        <div className="field">
-          <label htmlFor="f-max">Max fee</label>
-          <input id="f-max" inputMode="numeric" placeholder="1000" value={draft.maxFee} onChange={set('maxFee')} />
-        </div>
+        <details className="advanced">
+          <summary>Advanced: fee range</summary>
+          <div className="filters" style={{ margin: '0.6rem 0 0' }}>
+            <div className="field">
+              <label htmlFor="f-min">Min fee</label>
+              <input id="f-min" inputMode="numeric" placeholder="0" value={draft.minFee} onChange={set('minFee')} />
+            </div>
+            <div className="field">
+              <label htmlFor="f-max">Max fee</label>
+              <input id="f-max" inputMode="numeric" placeholder="1000" value={draft.maxFee} onChange={set('maxFee')} />
+            </div>
+          </div>
+        </details>
         <button className="btn" type="submit">
           Apply filters
         </button>
