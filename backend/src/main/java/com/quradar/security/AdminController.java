@@ -1,5 +1,6 @@
 package com.quradar.security;
 
+import com.quradar.audit.AuditService;
 import com.quradar.device.DeviceEntity;
 import com.quradar.device.DeviceNotFoundException;
 import com.quradar.device.DeviceRepository;
@@ -31,13 +32,16 @@ public class AdminController {
     private final DriverRepository drivers;
     private final DeviceRepository devices;
     private final PasswordEncoder passwords;
+    private final AuditService audit;
 
     public AdminController(UserRepository users, DriverRepository drivers,
-                           DeviceRepository devices, PasswordEncoder passwords) {
+                           DeviceRepository devices, PasswordEncoder passwords,
+                           AuditService audit) {
         this.users = users;
         this.drivers = drivers;
         this.devices = devices;
         this.passwords = passwords;
+        this.audit = audit;
     }
 
     public record UserCreateRequest(@NotBlank String username, @NotBlank @Size(min = 8) String password,
@@ -83,6 +87,8 @@ public class AdminController {
         }
         UserEntity saved = users.save(new UserEntity(request.username(),
                 passwords.encode(request.password()), request.role(), true, driver, device));
+        audit.record("CREATED_USER", "USER", saved.getUsername(),
+                java.util.Map.of("role", saved.getRole().name()));
         return ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.from(saved));
     }
 }

@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.quradar.audit.AuditService;
 import com.quradar.common.RateLimiter;
 import com.quradar.security.JwtService;
 import com.quradar.security.UserRepository;
@@ -39,6 +40,9 @@ class RuleAdminControllerTest {
 
     @MockBean
     private RateLimiter rateLimiter;
+
+    @MockBean
+    private AuditService auditService;
 
     private static RuleConfig config(String code, boolean enabled, int fee) throws Exception {
         RuleConfig config = new RuleConfig();
@@ -73,6 +77,7 @@ class RuleAdminControllerTest {
 
     @Test
     void patchUpdatesAndReturnsConfig() throws Exception {
+        when(service.getRequired("RED_LIGHT")).thenReturn(config("RED_LIGHT", true, 500));
         when(service.update(eq("RED_LIGHT"), any(RuleConfigUpdateRequest.class)))
                 .thenReturn(config("RED_LIGHT", false, 500));
         mvc.perform(patch("/api/v1/rules/RED_LIGHT")

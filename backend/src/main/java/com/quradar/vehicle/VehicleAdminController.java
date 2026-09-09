@@ -1,5 +1,6 @@
 package com.quradar.vehicle;
 
+import com.quradar.audit.AuditService;
 import com.quradar.common.CarType;
 import com.quradar.driver.Driver;
 import com.quradar.driver.DriverNotFoundException;
@@ -29,13 +30,16 @@ public class VehicleAdminController {
     private final VehicleRepository vehicles;
     private final DriverRepository drivers;
     private final FineRepository fines;
+    private final AuditService audit;
     private final SecuritySupport security;
 
     public VehicleAdminController(VehicleRepository vehicles, DriverRepository drivers,
-                                  FineRepository fines, SecuritySupport security) {
+                                  FineRepository fines, AuditService audit,
+                                  SecuritySupport security) {
         this.vehicles = vehicles;
         this.drivers = drivers;
         this.fines = fines;
+        this.audit = audit;
         this.security = security;
     }
 
@@ -66,6 +70,9 @@ public class VehicleAdminController {
                     .orElseThrow(() -> new DriverNotFoundException(request.ownerLicenseNo()));
         }
         Vehicle saved = vehicles.save(new Vehicle(request.plate(), request.carType(), owner));
+        java.util.Map<String, Object> detail = new java.util.HashMap<>();
+        detail.put("owner", saved.getOwner() != null ? saved.getOwner().getLicenseNo() : null);
+        audit.record("REGISTERED_VEHICLE", "VEHICLE", saved.getPlate(), detail);
         return ResponseEntity.status(HttpStatus.CREATED).body(VehicleResponse.from(saved));
     }
 

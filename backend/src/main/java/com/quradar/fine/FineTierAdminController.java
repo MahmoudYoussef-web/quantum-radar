@@ -1,5 +1,6 @@
 package com.quradar.fine;
 
+import com.quradar.audit.AuditService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -23,9 +24,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class FineTierAdminController {
 
     private final FineTierRepository tiers;
+    private final AuditService audit;
 
-    public FineTierAdminController(FineTierRepository tiers) {
+    public FineTierAdminController(FineTierRepository tiers, AuditService audit) {
         this.tiers = tiers;
+        this.audit = audit;
     }
 
     public record FineTierResponse(Long id, String ruleCode, int overFrom, Integer overTo, int fee) {
@@ -48,15 +51,21 @@ public class FineTierAdminController {
     public ResponseEntity<FineTierResponse> create(@Valid @RequestBody FineTierCreateRequest request) {
         FineTier saved = tiers.save(new FineTier(request.ruleCode(), request.overFrom(),
                 request.overTo(), request.fee()));
+        audit.record("CREATED_TIER", "FINE_TIER", String.valueOf(saved.getId()),
+                java.util.Map.of("rule", saved.getRuleCode(), "overFrom", saved.getOverFrom(),
+                        "fee", saved.getFee()));
         return ResponseEntity.status(HttpStatus.CREATED).body(FineTierResponse.from(saved));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!tiers.existsById(id)) {
+        FineTier tier = tiers.findById(id).orElse(null);
+        if (tier == null) {
             return ResponseEntity.notFound().build();
         }
-        tiers.deleteById(id);
+        tiers.delete(tier);
+        audit.record("DELETED_TIER", "FINE_TIER", String.valueOf(id),
+                java.util.Map.of("rule", tier.getRuleCode()));
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,6 +1,7 @@
 package com.quradar.driver;
 
 import com.quradar.fine.FineRepository;
+import com.quradar.audit.AuditService;
 import com.quradar.security.SecuritySupport;
 import com.quradar.vehicle.Vehicle;
 import com.quradar.vehicle.VehicleRepository;
@@ -29,15 +30,17 @@ public class DriverAdminController {
     private final LicenseRepository licenses;
     private final VehicleRepository vehicles;
     private final FineRepository fines;
+    private final AuditService audit;
     private final SecuritySupport security;
 
     public DriverAdminController(DriverRepository drivers, LicenseRepository licenses,
                                  VehicleRepository vehicles, FineRepository fines,
-                                 SecuritySupport security) {
+                                 AuditService audit, SecuritySupport security) {
         this.drivers = drivers;
         this.licenses = licenses;
         this.vehicles = vehicles;
         this.fines = fines;
+        this.audit = audit;
         this.security = security;
     }
 
@@ -56,6 +59,8 @@ public class DriverAdminController {
             @Valid @RequestBody DriverCreateRequest request) {
         Driver driver = drivers.save(new Driver(request.name(), request.licenseNo()));
         licenses.save(new License(driver, request.status(), request.issuedAt(), request.expiresAt()));
+        audit.record("CREATED_DRIVER", "DRIVER", driver.getLicenseNo(),
+                java.util.Map.of("name", driver.getName()));
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(driver));
     }
 
