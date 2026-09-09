@@ -46,7 +46,7 @@ export function LoginPage() {
         <form onSubmit={submit} aria-label="Sign in">
           <h2>Sign in</h2>
           <p className="muted" style={{ marginTop: '-0.5rem' }}>
-            Use your console account. Bootstrap login is <span className="mono">admin</span>.
+            Sign in to the enforcement console. Authorized personnel only.
           </p>
           <div className="field">
             <label htmlFor="login-username">Username</label>

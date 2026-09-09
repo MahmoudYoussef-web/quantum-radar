@@ -48,14 +48,14 @@ export function OverviewPage() {
         <>
           <ul className="kpis">
             <li className="kpi">
-              <span>Fines recorded</span>
+              <span>Distinct fines</span>
               <b>{fines.data?.totalElements ?? 0}</b>
-              <small>across all plates</small>
+              <small>one per fined observation</small>
             </li>
             <li className="kpi">
-              <span>Violations recorded</span>
+              <span>Violations</span>
               <b>{violations.data?.totalElements ?? 0}</b>
-              <small>individual rule hits</small>
+              <small>individual rule hits — several can form one fine</small>
             </li>
             <li className="kpi">
               <span>Rules enabled</span>

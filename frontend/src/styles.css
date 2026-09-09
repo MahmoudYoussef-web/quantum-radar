@@ -572,6 +572,7 @@ table.grid th.num {
 
 .section {
   padding: 4rem 0;
+  scroll-margin-top: 72px;
 }
 
 .section h2 {
