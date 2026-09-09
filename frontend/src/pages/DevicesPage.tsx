@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { Device, DeviceDetail } from '../api/types'
 import { Empty, ErrorBox, Loading } from '../components/Status'
+import { Confirm } from '../components/Confirm'
 import { useToast } from '../components/Toast'
 
 export function ago(iso: string | null): string {
@@ -37,6 +38,7 @@ export function DevicesPage() {
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [detailCode, setDetailCode] = useState<string | null>(null)
+  const [deactivating, setDeactivating] = useState<Device | null>(null)
 
   const query = useQuery({ queryKey: ['devices'], queryFn: () => api<Device[]>('/api/v1/devices') })
   const refresh = () => client.invalidateQueries({ queryKey: ['devices'] })
@@ -72,8 +74,9 @@ export function DevicesPage() {
       <div className="page-head">
         <h1>Devices</h1>
         <p>
-          Registered radars with live health. A deactivated device gets 403 on ingest —
-          an offline one simply stopped reporting.
+          Registered radars. Lifecycle says whether a device may report;
+          connectivity says whether it actually did recently. A deactivated device
+          gets 403 on ingest — an offline one simply stopped reporting.
         </p>
       </div>
       <form
@@ -103,14 +106,14 @@ export function DevicesPage() {
         <div className="table-scroll">
           <table className="grid">
             <thead>
-              <tr>
-                <th>Code</th>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Health</th>
-                <th>Last seen</th>
-                <th>Actions</th>
-              </tr>
+                <tr>
+                  <th>Code</th>
+                  <th>Name</th>
+                  <th>Lifecycle</th>
+                  <th>Connectivity</th>
+                  <th>Last seen</th>
+                  <th>Actions</th>
+                </tr>
             </thead>
             <tbody>
               {query.data.map((d) => (
@@ -134,9 +137,18 @@ export function DevicesPage() {
                       >
                         Details
                       </button>
-                      <button className="btn-ghost btn btn-sm" onClick={() => toggle.mutate(d)}>
-                        {d.active ? 'Deactivate' : 'Activate'}
-                      </button>
+                    <button
+                      className="btn-ghost btn btn-sm"
+                      onClick={() => {
+                        if (d.active) {
+                          setDeactivating(d)
+                        } else {
+                          toggle.mutate(d)
+                        }
+                      }}
+                    >
+                      {d.active ? 'Deactivate' : 'Activate'}
+                    </button>
                     </span>
                   </td>
                 </tr>
@@ -149,6 +161,15 @@ export function DevicesPage() {
         <p className="error-text">{((create.error ?? toggle.error) as Error).message}</p>
       )}
       {detailCode && <DeviceDetails code={detailCode} onClose={() => setDetailCode(null)} />}
+      {deactivating && (
+        <Confirm
+          title={`Deactivate ${deactivating.deviceCode}?`}
+          body="Its events will be rejected with 403 until reactivated. Recorded history is unaffected."
+          confirmLabel="Deactivate device"
+          onClose={() => setDeactivating(null)}
+          onConfirm={() => toggle.mutate(deactivating)}
+        />
+      )}
     </div>
   )
 }
@@ -175,7 +196,15 @@ function DeviceDetails({ code, onClose }: { code: string; onClose: () => void })
       {detailQuery.data && (
         <dl className="facts">
           <div>
-            <dt>Health</dt>
+            <dt>Lifecycle</dt>
+            <dd>
+              <span className={detailQuery.data.active ? 'pill pill-on' : 'pill pill-bad'}>
+                {detailQuery.data.active ? 'ACTIVE' : 'DEACTIVATED'}
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt>Connectivity</dt>
             <dd>
               <span className={healthPill(detailQuery.data.health)}>{detailQuery.data.health}</span>
             </dd>
