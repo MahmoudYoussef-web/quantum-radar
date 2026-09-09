@@ -1,15 +1,42 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
-import type { Device } from '../api/types'
+import type { Device, DeviceDetail } from '../api/types'
 import { Empty, ErrorBox, Loading } from '../components/Status'
 import { useToast } from '../components/Toast'
+
+export function ago(iso: string | null): string {
+  if (!iso) return 'never'
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000))
+  if (seconds < 60) return `${seconds} sec ago`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes} min ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 48) return `${hours} h ago`
+  return `${Math.floor(hours / 24)} d ago`
+}
+
+export function fmtDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function healthPill(health: Device['health']): string {
+  if (health === 'ACTIVE') return 'pill pill-on'
+  if (health === 'DEGRADED') return 'pill pill-warn'
+  return 'pill pill-bad'
+}
 
 export function DevicesPage() {
   const client = useQueryClient()
   const notify = useToast()
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
+  const [detailCode, setDetailCode] = useState<string | null>(null)
 
   const query = useQuery({ queryKey: ['devices'], queryFn: () => api<Device[]>('/api/v1/devices') })
   const refresh = () => client.invalidateQueries({ queryKey: ['devices'] })
@@ -44,7 +71,10 @@ export function DevicesPage() {
     <div>
       <div className="page-head">
         <h1>Devices</h1>
-        <p>Registered radars. A deactivated device gets 403 on ingest — its events stop cold.</p>
+        <p>
+          Registered radars with live health. A deactivated device gets 403 on ingest —
+          an offline one simply stopped reporting.
+        </p>
       </div>
       <form
         className="filters"
@@ -77,12 +107,14 @@ export function DevicesPage() {
                 <th>Code</th>
                 <th>Name</th>
                 <th>Status</th>
+                <th>Health</th>
+                <th>Last seen</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {query.data.map((d) => (
-                <tr key={d.deviceCode}>
+                <tr key={d.deviceCode} className={detailCode === d.deviceCode ? 'selected' : undefined}>
                   <td className="mono">{d.deviceCode}</td>
                   <td>{d.name}</td>
                   <td>
@@ -91,9 +123,21 @@ export function DevicesPage() {
                     </span>
                   </td>
                   <td>
-                    <button className="btn-ghost btn btn-sm" onClick={() => toggle.mutate(d)}>
-                      {d.active ? 'Deactivate' : 'Activate'}
-                    </button>
+                    <span className={healthPill(d.health)}>{d.health}</span>
+                  </td>
+                  <td className="mono">{ago(d.lastSeenAt)}</td>
+                  <td>
+                    <span style={{ display: 'flex', gap: '0.4rem' }}>
+                      <button
+                        className="btn-ghost btn btn-sm"
+                        onClick={() => setDetailCode(detailCode === d.deviceCode ? null : d.deviceCode)}
+                      >
+                        Details
+                      </button>
+                      <button className="btn-ghost btn btn-sm" onClick={() => toggle.mutate(d)}>
+                        {d.active ? 'Deactivate' : 'Activate'}
+                      </button>
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -104,6 +148,64 @@ export function DevicesPage() {
       {(create.isError || toggle.isError) && (
         <p className="error-text">{((create.error ?? toggle.error) as Error).message}</p>
       )}
+      {detailCode && <DeviceDetails code={detailCode} onClose={() => setDetailCode(null)} />}
     </div>
+  )
+}
+
+function DeviceDetails({ code, onClose }: { code: string; onClose: () => void }) {
+  const detailQuery = useQuery({
+    queryKey: ['device', code],
+    queryFn: () => api<DeviceDetail>(`/api/v1/devices/${code}`),
+    retry: false,
+  })
+
+  return (
+    <section className="card" aria-label={`Device ${code}`} style={{ marginTop: '1rem' }}>
+      <h2 className="panel-title">
+        Device · <span className="mono">{code}</span>{' '}
+        <button className="btn-ghost btn btn-sm" onClick={onClose}>
+          Close
+        </button>
+      </h2>
+      {detailQuery.isPending && <Loading what="device details" />}
+      {detailQuery.isError && (
+        <ErrorBox message={(detailQuery.error as Error).message} onRetry={() => detailQuery.refetch()} />
+      )}
+      {detailQuery.data && (
+        <dl className="facts">
+          <div>
+            <dt>Health</dt>
+            <dd>
+              <span className={healthPill(detailQuery.data.health)}>{detailQuery.data.health}</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Last heartbeat</dt>
+            <dd className="mono">{detailQuery.data.lastSeenAt ? fmtDateTime(detailQuery.data.lastSeenAt) : 'never'}</dd>
+          </div>
+          <div>
+            <dt>Firmware</dt>
+            <dd className="mono">{detailQuery.data.firmwareVersion ?? '—'}</dd>
+          </div>
+          <div>
+            <dt>Last IP</dt>
+            <dd className="mono">{detailQuery.data.lastIp ?? '—'}</dd>
+          </div>
+          <div>
+            <dt>Events ingested</dt>
+            <dd className="mono">{detailQuery.data.eventCount.toLocaleString('en-EG')}</dd>
+          </div>
+          <div>
+            <dt>Last event</dt>
+            <dd className="mono">{detailQuery.data.lastEventAt ? fmtDateTime(detailQuery.data.lastEventAt) : '—'}</dd>
+          </div>
+          <div>
+            <dt>Registered</dt>
+            <dd className="mono">{fmtDateTime(detailQuery.data.registeredAt)}</dd>
+          </div>
+        </dl>
+      )}
+    </section>
   )
 }

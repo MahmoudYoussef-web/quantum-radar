@@ -60,6 +60,21 @@ export interface Device {
   deviceCode: string
   name: string
   active: boolean
+  health: 'ACTIVE' | 'DEGRADED' | 'OFFLINE'
+  lastSeenAt: string | null
+}
+
+export interface DeviceDetail {
+  deviceCode: string
+  name: string
+  active: boolean
+  health: 'ACTIVE' | 'DEGRADED' | 'OFFLINE'
+  lastSeenAt: string | null
+  firmwareVersion: string | null
+  lastIp: string | null
+  registeredAt: string
+  eventCount: number
+  lastEventAt: string | null
 }
 
 export interface Driver {
