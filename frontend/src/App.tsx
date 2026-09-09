@@ -2,6 +2,7 @@ import { HashRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
 import { Layout } from './components/Layout'
 import { LandingPage } from './pages/LandingPage'
+import { AuditPage } from './pages/AuditPage'
 import { LoginPage } from './pages/LoginPage'
 import { OverviewPage } from './pages/OverviewPage'
 import { ViolationsPage } from './pages/ViolationsPage'
@@ -37,6 +38,7 @@ export default function App() {
               <Route path="/rules" element={<RulesPage />} />
               <Route path="/devices" element={<DevicesPage />} />
               <Route path="/drivers" element={<DriversPage />} />
+              <Route path="/audit" element={<AuditPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

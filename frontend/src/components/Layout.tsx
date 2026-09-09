@@ -9,6 +9,7 @@ const TITLES: Record<string, { title: string; crumb: string }> = {
   '/rules': { title: 'Rules', crumb: 'console / rules' },
   '/devices': { title: 'Devices', crumb: 'console / devices' },
   '/drivers': { title: 'Drivers & vehicles', crumb: 'console / drivers' },
+  '/audit': { title: 'Audit log', crumb: 'console / audit' },
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -40,6 +41,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <NavLink to="/rules">Rules</NavLink>
           <NavLink to="/devices">Devices</NavLink>
           <NavLink to="/drivers">Drivers</NavLink>
+          <NavLink to="/audit">Audit log</NavLink>
         </nav>
         <div className="side-user">
           <span className="avatar" aria-hidden="true">
